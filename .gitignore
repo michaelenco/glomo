@@ -1,0 +1,4 @@
+ejabberd_modules/include
+ejabberd
+ebin
+*.swp

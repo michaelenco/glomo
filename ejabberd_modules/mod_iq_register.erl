@@ -15,36 +15,44 @@
 
 -include("mod_privacy.hrl").
 
--record(last_activity, {us = {<<"">>, <<"">>} :: {binary(), binary()},
-                        timestamp = 0 :: non_neg_integer(),
-                        status = <<"">> :: binary()}).
+
 
 start(Host, Opts) ->
-    IQDisc = gen_mod:get_opt(iqdisc, Opts, fun gen_iq_handler:check_type/1,
-                             one_queue),
-
-    gen_iq_handler:add_iq_handler(ejabberd_local, Host,
-				  ?NS_REG, ?MODULE, process_local_iq, IQDisc).
+	gen_iq_handler:add_iq_handler(ejabberd_local, Host,
+				      ?NS_REG, ?MODULE, process_local_iq, parallel),
+	ejabberd_hooks:add(c2s_unauthenticated_iq, Host,
+			   ?MODULE, unauthenticated_iq_register, 50).
 
 stop(Host) ->
-    gen_iq_handler:remove_iq_handler(ejabberd_local, Host,
-				     ?NS_REG).
+	gen_iq_handler:remove_iq_handler(ejabberd_local, Host,
+					 ?NS_REG),
+	ejabberd_hooks:delete(c2s_unauthenticated_iq, Host,
+			      ?MODULE, unauthenticated_iq_register, 50).
 
 
 
 process_local_iq(_From, _To,
 		 #iq{type = Type, sub_el = SubEl} = IQ) ->
-    case Type of
-      set ->
-	  IQ#iq{type = error, sub_el = [SubEl, ?ERR_NOT_ALLOWED]};
-      get ->
-	  Sec = 10,
-	  IQ#iq{type = result,
-		sub_el =
-		    [#xmlel{name = <<"query">>,
-			    attrs =
-				[{<<"xmlns">>, ?NS_REG},
-				 {<<"seconds">>,
-				  "Hello"}],
-			    children = []}]}
-    end.
+	case Type of
+		set ->
+			IQ#iq{type = error, sub_el = [SubEl, ?ERR_NOT_ALLOWED]};
+		get ->
+			IQ#iq{type = result,
+			      sub_el =
+			      [#xmlel{name = <<"query">>,
+				      attrs =
+				      [{<<"xmlns">>, ?NS_REG},
+				       {<<"seconds">>,
+					"Hello"}],
+				      children = []}]}
+	end.
+
+unauthenticated_iq_register(_Acc, Server,#iq{type = Type, sub_el = SubEl} = IQ) -> 
+	IQ#iq{type = result,
+			      sub_el =
+			      [#xmlel{name = <<"query">>,
+				      attrs =
+				      [{<<"xmlns">>, ?NS_REG},
+				       {<<"seconds">>,
+					"Hello"}],
+				      children = []}]}.

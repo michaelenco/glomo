@@ -7,5 +7,5 @@ done
 for f in ./ebin/*
 do
 	echo "moving $f..."
-	cp $f /usr/lib/ejabberd/ebin/
+	cp $f /usr/ejabberd/ebin/
 done

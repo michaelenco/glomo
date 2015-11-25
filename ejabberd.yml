@@ -649,7 +649,7 @@ modules:
   mod_stats: {}
   mod_time: {}
   mod_vcard:
-    search: false
+    search: true
   mod_version: {}
   
 

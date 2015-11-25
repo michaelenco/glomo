@@ -571,6 +571,7 @@ language: "en"
 ## Modules enabled in all ejabberd virtual hosts.
 ##
 modules: 
+  mod_iq_register: {}
   mod_adhoc: {}
   ## mod_admin_extra: {}
   mod_announce: # recommends mod_adhoc

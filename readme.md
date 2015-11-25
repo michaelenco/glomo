@@ -1,1 +1,1 @@
-AHAH
+ejabberd modules mitto.im

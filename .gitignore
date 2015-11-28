@@ -4,3 +4,4 @@ ebin
 *.swp
 .idea
 build_modules.sh
+ejabberd.yml

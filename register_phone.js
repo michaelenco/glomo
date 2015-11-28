@@ -2,13 +2,13 @@ var Socket = require('net').Socket
 
 var sock = new Socket()
 
-/*sock.connect({
+sock.connect({
 	port: 5222,
 	host: "127.0.0.1",
 })
-*/
-var phone = process.argv[1]
-console.log(process.argv)
+
+var phone = process.argv[2]
+
 sock.on('connect', function(){
 	console.log("connected")
 	sock.write("<?xml version=\"1.0\"?>")

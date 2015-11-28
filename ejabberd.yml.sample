@@ -572,7 +572,7 @@ language: "en"
 ## Modules enabled in all ejabberd virtual hosts.
 ##
 modules: 
-  ## mod_iq_register: {}
+  mod_iq_register: {}
   mod_announce: 
     db_type: riak
     access: local

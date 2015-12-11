@@ -36,30 +36,30 @@ sms_passwd_schema() ->
 	{record_info(fields, sms_passwd), #sms_passwd{}}.
 
 start(Host, Opts) ->
+	mnesia:create_table(sms_passwd,[{attributes, record_info(fields, sms_passwd)}]),
 	ejabberd_hooks:add(c2s_unauthenticated_iq, Host, ?MODULE, unauthenticated_iq, 50),
 	inets:start(),
 	ok.
 
 stop(Host) ->
-	ejabberd_hooks:delete(c2s_unauthenticated_iq, Host,?MODULE, unauthenticated_iq, 50),
-	inets:stop(),
-	ok.
+	ejabberd_hooks:delete(c2s_unauthenticated_iq, Host,?MODULE, unauthenticated_iq_register, 50).
 
 
-unauthenticated_iq(Acc, Server, #iq{xmlns = ?NS_REG, sub_el = SubEl} = IQ, IP) -> 
+unauthenticated_iq_register(Acc, Server, #iq{xmlns = ?NS_REG, sub_el = SubEl} = IQ, IP) -> 
 	PhoneTag = xml:get_subtag(SubEl, <<"phone">>),
 	if
 		(PhoneTag /= false) -> 
+			io:format("phone tag: ~w ~n~n~n",[PhoneTag]),
 			{xmlel,_,_,Children} = PhoneTag,
-
 			PhoneNumber = xml:get_cdata(Children),
 			Passwd = list_to_binary(random_password(5)),
 
-			ok = ejabberd_riak:put(#sms_passwd{phone = PhoneNumber, passwd = Passwd}, sms_passwd_schema()),
+			ok = mnesia:dirty_write(#sms_passwd{phone = PhoneNumber, passwd = Passwd}),
 
-			SmsUrl = ?SMS_BASE_URL ++ binary_to_list(PhoneNumber) ++ "&text=your+password+" ++ binary_to_list(Passwd),
-			{ok, {{Version, 202, ReasonPhrase}, Headers, Body}} = httpc:request(get, {SmsUrl, []}, [], []),
-			io:format("request_body ~s~n~n~n",[Body]),
+
+			%msUrl = ?SMS_BASE_URL ++ binary_to_list(PhoneNumber) ++ "&text=your+password+" ++ binary_to_list(Passwd),
+			%{ok, {{Version, 202, ReasonPhrase}, Headers, Body}} = httpc:request(get, {SmsUrl, []}, [], []),
+			%io:format("request_body ~s~n~n~n",[Body]),
 
 			jlib:iq_to_xml(IQ#iq{
 					 type = result,
@@ -87,8 +87,8 @@ unauthenticated_iq(Acc, Server, #iq{xmlns = ?NS_CONFIRM, sub_el = SubEl} = IQ, I
 			{xmlel,_,_,PasswdChildren} = PasswdTag,
 			Passwd = xml:get_cdata(PasswdChildren),
 
-			case ejabberd_riak:get(sms_passwd, sms_passwd_schema(), PhoneNumber) of
-				{ok, #sms_passwd{passwd = Passwd}} -> 
+			case mnesia:dirty_read(sms_passwd,  PhoneNumber) of
+				[#sms_passwd{passwd = Passwd}] -> 
 					NewPasswd = list_to_binary(random_password(10)),
 
 					{atomic, ok} = ejabberd_auth:try_register(PhoneNumber, ?DOMAIN, NewPasswd),

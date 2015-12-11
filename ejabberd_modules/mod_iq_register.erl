@@ -45,7 +45,7 @@ stop(Host) ->
 	ejabberd_hooks:delete(c2s_unauthenticated_iq, Host,?MODULE, unauthenticated_iq_register, 50).
 
 
-unauthenticated_iq_register(Acc, Server, #iq{xmlns = ?NS_REG, sub_el = SubEl} = IQ, IP) -> 
+unauthenticated_iq(Acc, Server, #iq{xmlns = ?NS_REG, sub_el = SubEl} = IQ, IP) -> 
 	PhoneTag = xml:get_subtag(SubEl, <<"phone">>),
 	if
 		(PhoneTag /= false) -> 

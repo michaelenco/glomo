@@ -47,31 +47,26 @@ stop(Host) ->
 
 unauthenticated_iq(Acc, Server, #iq{xmlns = ?NS_REG, sub_el = SubEl} = IQ, IP) -> 
 	PhoneTag = xml:get_subtag(SubEl, <<"phone">>),
-	if
-		(PhoneTag /= false) -> 
-			io:format("phone tag: ~w ~n~n~n",[PhoneTag]),
-			{xmlel,_,_,Children} = PhoneTag,
-			PhoneNumber = xml:get_cdata(Children),
-			Passwd = list_to_binary(random_password(5)),
+	if 
+		(PhoneTag /= false)->
 
-			ok = mnesia:dirty_write(#sms_passwd{phone = PhoneNumber, passwd = Passwd}),
+			{xmlel,_,_,PhoneChildren} = PhoneTag,
+			PhoneNumber = xml:get_cdata(PhoneChildren),
 
+			NewPasswd = list_to_binary(random_password(10)),
 
-			%msUrl = ?SMS_BASE_URL ++ binary_to_list(PhoneNumber) ++ "&text=your+password+" ++ binary_to_list(Passwd),
-			%{ok, {{Version, 202, ReasonPhrase}, Headers, Body}} = httpc:request(get, {SmsUrl, []}, [], []),
-			%io:format("request_body ~s~n~n~n",[Body]),
-
+			{atomic, ok} = ejabberd_auth:try_register(PhoneNumber, ?DOMAIN, NewPasswd),
 			jlib:iq_to_xml(IQ#iq{
 					 type = result,
 					 sub_el = [
 						   #xmlel{
-						      name= <<"passwd">> ,
+						      name = <<"new_password">>, 
 						      attrs = [], 
-						      children = [{xmlcdata,Passwd}]
+						      children = [{xmlcdata, NewPasswd}]
 						     }
 						  ]
 					});
-		true ->
+		true -> 
 			jlib:iq_to_xml(IQ#iq{type = error,sub_el = [SubEl, ?ERR_NOT_ALLOWED]})
 	end;
 

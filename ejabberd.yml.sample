@@ -1,4 +1,4 @@
-###
+##
 ###'              ejabberd configuration file
 ###
 ###
@@ -177,7 +177,13 @@ listen:
     http_bind: true
     ## register: true
     captcha: true
-
+  -
+    module: ejabberd_http
+    port: 5444
+    ##tls: false
+    ##certfile: "/etc/ejabberd/example.com.pem"
+    request_handlers:
+      "": mod_http_upload
 ###.  ==================
 ###'  S2S GLOBAL OPTIONS
 
@@ -509,6 +515,10 @@ access:
   ## Only allow to register from localhost
   trusted_network: 
     loopback: allow
+  soft_upload_quota:
+    all: 1000 # MiB
+  hard_upload_quota:
+    all: 1100 # MiB
   ## Do not establish S2S connections with bad servers
   ## s2s: 
   ##   bad_servers: deny
@@ -578,16 +588,19 @@ modules:
     min_message_interval: 0.4
     default_room_options:
       allow_change_subj: false
-      allow_change_subj: false
       persistent: true
-      allow_query_users: false
-      allow_private_messages: false
       allow_private_messages_from_visitors: nobody
       logging: true
       public: false
+      mam: true
   mod_muc_admin: []
   mod_mam:
     default: always
+    iqdisc: no_queue
+  mod_http_upload: 
+    access: all
+  mod_http_upload_quota:
+    max_days: 100
 ###################
   mod_announce: 
     access: local

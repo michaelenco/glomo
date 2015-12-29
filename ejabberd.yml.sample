@@ -582,21 +582,31 @@ language: "en"
 modules:
   mod_iq_register: []
   mod_muc: 
-    history_size: 500
-    max_users: 10
+    access: all
+    max_users: 2000
     max_users_presence: 20
+    access_persistent: none
+    access_admin: none
+    max_user_conferences: 100
     min_message_interval: 0.4
     default_room_options:
+      allow_user_invites: true
+      allow_private_messages: false
+      allow_private_messages_from_visitors: false
       allow_change_subj: false
-      persistent: true
-      allow_private_messages_from_visitors: nobody
-      logging: true
-      public: false
+      allow_query_users: false
+      allow_visitor_nickchange: false
+      anonymous: false
       mam: true
+      max_users: 2000
+      members_only: true
+      persistent: true
+      public: false
+      public_list: false 
   mod_muc_admin: []
   mod_mam:
     default: always
-    iqdisc: no_queue
+    iqdisc: one_queue
   mod_http_upload: 
     access: all
   mod_http_upload_quota:

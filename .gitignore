@@ -1,7 +1,4 @@
-ejabberd_modules/include
-ejabberd
-ebin
+ejabberd_modules
 *.swp
 .idea
-build_modules.sh
 ejabberd.yml

@@ -2806,27 +2806,35 @@ find_changed_items(UJID, UAffiliation, URole,
 			    {error, ?ERRT_NOT_ACCEPTABLE(Lang, ErrText1)};
 			SAffiliation ->
 			    ServiceAf = get_service_affiliation(JID, StateData),
-			    CanChangeRA = case can_change_ra(UAffiliation,
-							     URole,
-							     TAffiliation,
-							     TRole, affiliation,
-							     SAffiliation,
-							     ServiceAf)
-					      of
-					    nothing -> nothing;
-					    true -> true;
-					    check_owner ->
-						case search_affiliation(owner,
-									StateData)
-						    of
-						  [{OJID, _}] ->
-						      jid:remove_resource(OJID)
-							/=
-							jid:tolower(jid:remove_resource(UJID));
-						  _ -> true
-						end;
-					    _ -> false
-					  end,
+% !customcode to allow user kick yourself
+			    BareJID = jlib:jid_remove_resource(JID),
+			    BareUJID = jlib:jid_remove_resource(UJID),
+			    if
+				(BareJID == BareUJID) and (SAffiliation == none) ->
+				    CanChangeRA = true;
+				true ->
+				    CanChangeRA = case can_change_ra(UAffiliation,
+								     URole,
+								     TAffiliation,
+								     TRole, affiliation,
+								     SAffiliation,
+								     ServiceAf)
+						  of
+						      nothing -> nothing;
+						      true -> true;
+						      check_owner ->
+							  case search_affiliation(owner,
+										  StateData)
+							  of
+							      [{OJID, _}] ->
+								  jid:remove_resource(OJID)
+								  /=
+								  jid:tolower(jid:remove_resource(UJID));
+							      _ -> true
+							  end;
+						      _ -> false
+						  end
+			    end,
 			    case CanChangeRA of
 			      nothing ->
 				  find_changed_items(UJID, UAffiliation, URole,

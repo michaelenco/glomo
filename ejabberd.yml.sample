@@ -611,6 +611,7 @@ modules:
     access: all
   mod_http_upload_quota:
     max_days: 100
+  mod_phone_contacts: []
 ###################
   mod_announce: 
     access: local

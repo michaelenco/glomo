@@ -12,3 +12,11 @@ echo "Compiling..."
 make
 echo "Moving files to their locations..."
 make install > /dev/null
+
+echo "Removing custom modules sources from ejabberd environment..."
+cd $DIR/src
+for f in *.erl
+do
+    echo "$f..."
+    rm $DIR/ejabberd_src/src/$f
+done

@@ -16,7 +16,7 @@
 
 -define(NS_PHONE_CONTACTS, <<"jabber:iq:phone_contacts">>). 
 
--record(phone_contacts,{user= <<"">>, phone = <<"">>}).
+-record(phone_contacts,{user= <<"">>, phone = <<"">>, bare_phone = <<"">>}).
 
 
 start(Host, Opts) ->
@@ -37,7 +37,7 @@ process_local_iq(From, _To,
 		     #iq{type = set, sub_el = SubEl} = IQ) ->
     Items = xml:get_subtags(SubEl, <<"item">>),
     mnesia:dirty_delete(phone_contacts,From),
-    Result = set_contact_phones(From,Items,[]),
+    Result = set_contact_phones(jlib:jid_remove_resource(From),Items,[]),
     XMLItems = lists:map(fun(X) -> phone_jid_map(X) end,Result),
     IQ#iq{type = result,sub_el = XMLItems}.
 
@@ -46,7 +46,7 @@ set_contact_phones(From, [], Res) ->
 
 set_contact_phones(From, [#xmlel{attrs = Attrs}|T], Res) ->
     {value,PhoneNumber} = xml:get_attr(<<"phone">>,Attrs),
-    mnesia:dirty_write(#phone_contacts{user=From#jid.luser, phone=PhoneNumber}),
+    mnesia:dirty_write(#phone_contacts{user=jlib:jid_to_string(From), phone=PhoneNumber, bare_phone=PhoneNumber}),
     case ejabberd_auth:is_user_exists(PhoneNumber,From#jid.lserver) of 
 	true->
 	    NewRes = [{PhoneNumber,jlib:jid_to_string(#jid{user = PhoneNumber, server = From#jid.lserver})}| Res];

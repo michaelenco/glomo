@@ -7,6 +7,9 @@ do
     cp $f $DIR/ejabberd_src/src/
 done
 
+cp $DIR/rebar.config $DIR/ejabberd_src/rebar.config
+cp $DIR/rel/reltool.config.script $DIR/ejabberd_src/rel/reltool.config.script
+
 cd $DIR/ejabberd_src
 echo "Compiling..."
 make

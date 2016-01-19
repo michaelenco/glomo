@@ -1,5 +1,9 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+cd $DIR
+rm -rf ejabberd_src
+git clone https://github.com/processone/ejabberd ejabberd_src
+
 cd $DIR/ejabberd_src
 ./autogen.sh
 ./configure

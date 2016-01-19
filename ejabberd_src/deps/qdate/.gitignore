@@ -1,8 +1,0 @@
-*~
-*.beam
-*.sw?
-deps/
-ebin/
-.eunit/
-_build
-rebar.lock

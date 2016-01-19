@@ -2,22 +2,24 @@
 
 -behaviour(gen_mod).
 
--export([start/2, stop/1, register_user/2, offline_message/3]).
+-export([start/2, stop/1, register_user/2, offline_message/3, muc_filter_message/5]).
 
 -include("ejabberd.hrl").
 -include("logger.hrl").
-
 -include("jlib.hrl").
+-include("mod_muc_room.hrl").
 
 -record(phone_contacts,{user= <<"">>, phone = <<"">>, bare_phone = <<"">>}).
 
 
 start(Host, Opts) ->
     ejabberd_hooks:add(offline_message_hook, Host, ?MODULE, offline_message, 49),
+    ejabberd_hooks:add(muc_filter_message, Host, ?MODULE, muc_filter_message, 49),
     ejabberd_hooks:add(register_user, Host, ?MODULE, register_user, 50).
 
 stop(Host) ->
     ejabberd_hooks:delete(offline_message_hook, Host, ?MODULE, offline_message, 49),
+    ejabberd_hooks:delete(muc_filter_message, Host, ?MODULE, muc_filter_message, 49),
     ejabberd_hooks:delete(register_user, Host, ?MODULE, register_user, 50).
 
 register_user(User, Server) ->
@@ -31,7 +33,7 @@ notify_registered(_, []) ->
 
 notify_registered(Joined, [{Jid, PhoneId}|T]) ->
     Message = [
-	       {<<"type">>,<<"contact_registered">>},
+	       {<<"type">>,<<"registered">>},
 	       {<<"phone">>, PhoneId},
 	       {<<"jid">>, Joined}],
     mod_gcm:push(jlib:string_to_jid(Jid), jsx:encode(Message)),
@@ -41,7 +43,7 @@ offline_message(From, To, Packet) ->
     case xml:get_tag_attr_s(<<"type">>,Packet) of
 	<<"chat">> -> 
 	    Message = [
-		       {<<"type">>, <<"chat_message">>},
+		       {<<"type">>, <<"chat">>},
 		       {<<"jid">>, jlib:jid_to_string(jlib:jid_remove_resource(From))},
 		       {<<"message">>, xml:get_path_s(Packet,[{elem, <<"body">>},cdata])}
 		      ],
@@ -52,3 +54,20 @@ offline_message(From, To, Packet) ->
 	    io:format("offline_message type: ~s",[Type]),
 	    ok
     end. 
+
+muc_filter_message(Pkt, #state{config = Config, jid=JID, users=Users, affiliations=Aff, subject=Subject} = MUCState, RoomJID, From, FromNick) ->
+    OnlineUsers = lists:map(fun(JID) -> jlib:jid_remove_resource(JID) end,
+			    dict:fetch_keys(Users)),
+    AllUsers = dict:fetch_keys(Aff),
+    OfflineUsers = AllUsers -- OnlineUsers,
+    Message = [
+	       {<<"type">>, <<"groupchat">>},
+	       {<<"jid">>, jlib:jid_to_string(jlib:jid_remove_resource(From))},
+	       {<<"message">>, xml:get_path_s(Pkt, [{elem, <<"body">>}, cdata])},
+	       {<<"room">>, jlib:jid_to_string(JID)}
+	      ],
+    lists:foreach(fun(User) ->
+			  mod_gcm:push(User, jsx:encode(Message))
+		  end,
+		  OfflineUsers),
+    Pkt.

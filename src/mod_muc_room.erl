@@ -5,7 +5,7 @@
 %%% Created : 19 Mar 2003 by Alexey Shchepin <alexey@process-one.net>
 %%%
 %%%
-%%% ejabberd, Copyright (C) 2002-2015   ProcessOne
+%%% ejabberd, Copyright (C) 2002-2016   ProcessOne
 %%%
 %%% This program is free software; you can redistribute it and/or
 %%% modify it under the terms of the GNU General Public License as
@@ -228,8 +228,8 @@ normal_state({route, From, <<"">>,
 		case is_user_online(From, StateData) of
 		  true ->
 		      ErrorText = <<"It is not allowed to send error messages to the"
-				    " room. This participant (~s) sent an error "
-				    "message (~s) and gets kicked from the room">>,
+				    " room. The participant (~s) has sent an error "
+				    "message (~s) and got kicked from the room">>,
 		      NewState = expulse_participant(Packet, From, StateData,
 						     translate:translate(Lang,
 									 ErrorText)),
@@ -516,8 +516,8 @@ normal_state({route, From, ToNick,
       {expulse_sender, Reason} ->
 	  ?DEBUG(Reason, []),
 	  ErrorText = <<"It is not allowed to send error messages to the"
-		    " room. This participant (~s) sent an error "
-		    "message (~s) and gets kicked from the room">>,
+		    " room. The participant (~s) has sent an error "
+		    "message (~s) and got kicked from the room">>,
 	  NewState = expulse_participant(Packet, From, StateData,
 					 translate:translate(Lang, ErrorText)),
 	  {next_state, normal_state, NewState};
@@ -1057,8 +1057,8 @@ process_presence(From, Nick,
 				    remove_online_user(From, NewState, Reason);
 				<<"error">> ->
 				    ErrorText = <<"It is not allowed to send error messages to the"
-					" room. This participant (~s) sent an error "
-					"message (~s) and gets kicked from the room">>,
+					" room. The participant (~s) has sent an error "
+					"message (~s) and got kicked from the room">>,
 				    expulse_participant(Packet, From, StateData,
 							translate:translate(Lang,
 									    ErrorText));
@@ -4169,7 +4169,9 @@ process_iq_disco_info(_From, get, Lang, StateData) ->
        ++ case {gen_mod:is_loaded(StateData#state.server_host, mod_mam),
 		Config#config.mam} of
 	    {true, true} ->
-		[?FEATURE(?NS_MAM_0)];
+		[?FEATURE(?NS_MAM_TMP),
+		 ?FEATURE(?NS_MAM_0),
+		 ?FEATURE(?NS_MAM_1)];
 	    _ ->
 		[]
 	  end

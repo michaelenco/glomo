@@ -55,14 +55,14 @@ unauthenticated_iq(Acc, Server, #iq{xmlns = ?NS_REG, sub_el = SubEl} = IQ, IP) -
 
 			NewPasswd = list_to_binary(random_password(10)),
 
-			{atomic, ok} = ejabberd_auth:try_register(PhoneNumber, ?DOMAIN, NewPasswd),
+			{atomic, ok} = ejabberd_auth:try_register(PhoneNumber, Server, NewPasswd),
 			jlib:iq_to_xml(IQ#iq{
 					 type = result,
 					 sub_el = [
 						   #xmlel{
 						      name = <<"new-account">>, 
 						      attrs = [
-							       {<<"jid">>, jlib:jid_to_string(#jid{ user = PhoneNumber, server = ?DOMAIN})},
+							       {<<"jid">>, jlib:jid_to_string(#jid{ user = PhoneNumber, server = Server})},
 							       {<<"password">>, NewPasswd}
 							      ] 
 						     }

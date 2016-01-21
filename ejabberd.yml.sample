@@ -612,6 +612,7 @@ modules:
   mod_http_upload_quota:
     max_days: 100
   mod_phone_contacts: []
+  mod_number_lookup: []
   mod_gcm:
       api_key: "AIzaSyA7bWapsoi8n-Xjdpw6oV5bx5nyfadSzKE"
   mod_push: []

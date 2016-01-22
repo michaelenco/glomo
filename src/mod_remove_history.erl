@@ -20,7 +20,7 @@ stop(Host) ->
 				     ?NS_REMOVE_HISTORY).
 
 process_local_iq(From,_To,#iq{type=set, sub_el = SubEl} = IQ) -> 
-    Tag = xml:get_subtag(SubEl, <<"mid">>),
+    Tag = xml:get_subtag(SubEl, <<"id">>),
     {xmlel,_,_,Children} = Tag,
     MessageId = binary_to_list(xml:get_cdata(Children)),
     Messages = ultra_dirty_select(MessageId),

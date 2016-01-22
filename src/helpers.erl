@@ -1,6 +1,6 @@
 -module(helpers).
 -behaviour(gen_mod).
--export([start/2, stop/1, show_table/1, ultra_dirty_match/1]).
+-export([start/2, stop/1, show_table/1]).
 
 -include("ejabberd.hrl").
 -include("logger.hrl").

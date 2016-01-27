@@ -29,8 +29,8 @@ check_phone(Phone) ->
 	end.
 
 format_phone(Phone) ->
-	NoPlus = string:strip(Phone, left, $+),
-	AlbanianLookup = replace_left(NoPlus,$0,"355"),
+	Formatted = re:replace(Phone, "[^0-9]", "", [global, {return, list}]),
+	AlbanianLookup = replace_left(Formatted,$0,"355"),
 	replace_left(AlbanianLookup,$8,"7").
 
 val(X) ->

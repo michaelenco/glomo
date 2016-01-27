@@ -3,3 +3,4 @@ ejabberd_modules
 .idea
 ejabberd.yml
 ejabberd_src
+erl_crash.dump

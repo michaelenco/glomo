@@ -62,13 +62,13 @@ unauthenticated_iq(Acc, Server, #iq{xmlns = ?NS_REG, sub_el = SubEl} = IQ, IP) -
 					SmsUrl = ?SMS_BASE_URL ++ PhoneNumber ++ "&text=" ++ binary_to_list(NewPasswd),
 					{ok, {{Version, 202, ReasonPhrase}, Headers, Body}} = httpc:request(SmsUrl),
 					jlib:iq_to_xml(IQ#iq{
-					 type = result,
-					 sub_el = [
+						type = result,
+					 	sub_el = [
 						   #xmlel{
-						      name = <<"new-account">>, 
-						      attrs = [
-							       {<<"result">>,<<"ok">>}
-							      ] 
+						      	name = <<"old-account">>, 
+						      	attrs = [
+							    	{<<"result">>,<<"ok">>}
+							    ] 
 						     }
 						  ]
 					});
@@ -82,27 +82,27 @@ unauthenticated_iq(Acc, Server, #iq{xmlns = ?NS_REG, sub_el = SubEl} = IQ, IP) -
 							{ok, {{Version, 202, ReasonPhrase}, Headers, Body}} = httpc:request(SmsUrl),
 							ok = mnesia:dirty_write(#user_countries{user = list_to_binary(FormattedPhone), country = list_to_binary(Mcc)}),
 							jlib:iq_to_xml(IQ#iq{
-							 type = result,
-							 sub_el = [
+							 	type = result,
+								sub_el = [
 								   #xmlel{
-								      name = <<"new-account">>, 
-								      attrs = [
+								      	name = <<"new-account">>, 
+								      	attrs = [
 									       {<<"result">>,<<"ok">>}
-									      ] 
-								     }
-								  ]
+									    ] 
+							     	}
+						    	]
 							});
 						true ->
 							jlib:iq_to_xml(IQ#iq{
-							 type = error,
-							 sub_el = [
-								   #xmlel{
-								      name = <<"error">>, 
-								      attrs = [
-									       {<<"reason">>,<<"not valid phone number">>}
-									      ] 
-								     }
-								  ]
+								type = error,
+							 	sub_el = [
+								    #xmlel{
+								      	name = <<"error">>, 
+								      	attrs = [
+									    	{<<"reason">>,<<"not valid phone number">>}
+									    ] 
+								    }
+								]
 							})
 					end
 			end;

@@ -618,6 +618,7 @@ modules:
   mod_gcm:
       api_key: "AIzaSyA7bWapsoi8n-Xjdpw6oV5bx5nyfadSzKE"
   mod_push: []
+  mod_stat: []
 ###################
   mod_announce: 
     access: local

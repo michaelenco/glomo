@@ -614,6 +614,7 @@ modules:
   mod_phone_contacts: []
   mod_number_lookup: []
   mod_remove_history: []
+  mod_uri: []
   mod_sms: []
   helpers: []
   mod_gcm:

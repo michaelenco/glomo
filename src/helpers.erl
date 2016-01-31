@@ -9,10 +9,10 @@
 -record(user_countries,{user= <<"">>, country = <<"">>}).
 
 start(Host, Opts) ->
-	ok.
+    ok.
 
 stop(Host) ->
-	ok.
+    ok.
 
 show_table(Table_name) ->
     Iterator =  fun(Rec,_)->
@@ -54,11 +54,10 @@ text_schema([H|T],Flag) ->
             text_schema(T,Flag)
     end.
 
-from_string([H|T] = Uri) ->
-    io:format("~n~n ~p ~n~n",[H]),
-    URL = lists:map(fun(X) -> map_into_to_hex(X) end,Uri),
-    make_glomo_url(URL).
-
+make_glomo_url(Url) ->
+    URLHex = lists:concat(lists:map(fun(X) -> helpers:map_into_to_hex(X) end,Url)),
+    {UrlGlomo,_} = lists:foldl(fun(Element,Accum) -> glomo_url(Element, Accum) end, {"",0}, URLHex),
+    UrlGlomo.
 
 map_into_to_hex(X) ->
     if
@@ -70,20 +69,22 @@ map_into_to_hex(X) ->
     end.
 
 add_zeroes_to_hex(X) ->
-    if 
+    if
         length(X) < 4 ->
             add_zeroes_to_hex(lists:append("0", X));
         true ->
             X   
     end.
 
+glomo_url(Element,{Result,Cnt} = Accum) ->
+    NewCnt = Cnt +1,
+    if Cnt rem 2 == 0 ->
+        NewResult = lists:append(Result,"%"),
+        ReturnResult = lists:append(NewResult, [Element]),
+        {ReturnResult, NewCnt};
+   true->
+        ReturnResult = lists:append(Result,[Element]),
+        {ReturnResult,NewCnt}
+end.
 
-make_glomo_url(Url) ->
-    URLHex = lists:map(fun(X) -> helpers:map_into_to_hex(X) end,Url),
-    glomo_url("",URLHex).
 
-glomo_url(Url,[]) ->
-    Url++"%";
-glomo_url(Url,[H|T]) ->
-    Middle = lists:append("%", H),
-    glomo_url(lists:append(Url, Middle),T).

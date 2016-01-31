@@ -43,7 +43,8 @@ filter_packet(P) ->
 						UserQuota > 0 ->
 							SendTo = To#jid.luser,
 							Body = xml:get_subtag(Message, <<"body">>),
-							Text = binary_to_list(xml:get_tag_cdata(Body)),
+							Text = unicode:characters_to_list(xml:get_tag_cdata(Body)),
+							io:format("~n~n ~p ~n~n~n",[Text]),
 							send_sms(binary_to_list(SendFrom),binary_to_list(SendTo),Text),
 							decrement_user_quota(SendFrom);
 						true -> 
@@ -92,15 +93,6 @@ increment_user_quota(User) ->
 
 decrement_user_quota(User)->
 	add_user_quota(User,-1).
-
-
-
-
-
-
-
-
-
 
 
 

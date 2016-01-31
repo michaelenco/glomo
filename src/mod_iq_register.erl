@@ -33,7 +33,10 @@ random_password(N) ->
 	[random_char()|random_password(N-1)].
 
 start(Host, Opts) ->
-	mnesia:create_table(user_countries,[{attributes, record_info(fields, user_countries)}]),
+	mnesia:create_table(user_countries,
+		[{disc_copies, [node()]},
+		 {attributes,
+		  record_info(fields, user_countries)}]),
 	ejabberd_hooks:add(c2s_unauthenticated_iq, Host, ?MODULE, unauthenticated_iq, 50),
 	inets:start(),
 	ok.

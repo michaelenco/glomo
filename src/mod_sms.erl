@@ -6,6 +6,8 @@
 -include("logger.hrl").
 -include("jlib.hrl").
 
+-define(SMS_BASE_URL, "http://10.20.254.4:13002/cgi-bin/sendsms?username=kanneluser&password=kannelpass&smsc=mitto&from=Glomo.im&to=").
+
 -export([start/2,
          stop/1]).
 
@@ -44,7 +46,6 @@ filter_packet(P) ->
 							SendTo = To#jid.luser,
 							Body = xml:get_subtag(Message, <<"body">>),
 							Text = unicode:characters_to_list(xml:get_tag_cdata(Body)),
-							io:format("~n~n ~p ~n~n~n",[Text]),
 							send_sms(binary_to_list(SendFrom),binary_to_list(SendTo),Text),
 							decrement_user_quota(SendFrom);
 						true -> 
@@ -59,12 +60,14 @@ filter_packet(P) ->
 send_sms(From,To,Text) ->
 	case helpers:return_text_format(Text) of
 		unicode ->
-			Url = helpers:make_glomo_url(Text);
+			Url = helpers:make_glomo_url(Text),
+			SmsUrl = ?SMS_BASE_URL ++ To ++ "&text=" ++ Url ++ "&coding=2",
+			{ok, {{Version, 202, ReasonPhrase}, Headers, Body}} = httpc:request(SmsUrl);
 		norm ->
-			Url = mod_uri:encode_uri_component(Text)
-	end,
-	io:format("~n~n ~p ~n ~p ~n ~p ~n~n~n",[From,To,Url]),
-	ok.
+			Url = mod_uri:encode_uri_component(Text),
+			SmsUrl = ?SMS_BASE_URL ++ To ++ "&text=" ++ Url,
+			{ok, {{Version, 202, ReasonPhrase}, Headers, Body}} = httpc:request(SmsUrl)
+	end.
 
 get_user_quota(User) ->
 	case mnesia:dirty_read(user_sms_quota, User) of

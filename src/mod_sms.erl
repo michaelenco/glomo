@@ -7,6 +7,7 @@
 -include("jlib.hrl").
 
 -define(SMS_BASE_URL, "http://10.20.254.4:13002/cgi-bin/sendsms?username=kanneluser&password=kannelpass&smsc=mitto&from=Glomo.im&to=").
+-define(NS_SMS_QUOTA, <<"jabber:iq:sms_quota">>). 
 
 -export([start/2,
          stop/1]).
@@ -16,7 +17,8 @@
 	get_user_quota/1,
 	set_user_quota/2,
 	increment_user_quota/1,
-	decrement_user_quota/1
+	decrement_user_quota/1,
+	sms_quota_iq/3
 	]).
 
 -record(user_sms_quota,{user= <<"">> : binary(), quota = 0  :: integer()}).
@@ -26,10 +28,30 @@ start(Host, _Opts) ->
 		[{disc_copies, [node()]},
 		 {attributes,
 		  record_info(fields, user_sms_quota)}]),
-   	ejabberd_hooks:add(filter_packet, global, ?MODULE, filter_packet, 50).
+   	ejabberd_hooks:add(filter_packet, global, ?MODULE, filter_packet, 50),
+   	gen_iq_handler:add_iq_handler(ejabberd_local, Host,?NS_SMS_QUOTA, ?MODULE, sms_quota_iq, one_queue).
 
 stop(Host) ->
-	ejabberd_hooks:add(filter_packet, global, ?MODULE, filter_packet, 50).
+	ejabberd_hooks:add(filter_packet, global, ?MODULE, filter_packet, 50),
+	gen_iq_handler:remove_iq_handler(ejabberd_local, Host,?NS_SMS_QUOTA).
+
+sms_quota_iq(From, _To,
+		 #iq{type = Type, sub_el = SubEl} = IQ) ->
+    	case Type of
+      		set ->
+	  		IQ#iq{type = error, sub_el = [SubEl, ?ERR_NOT_ALLOWED]};
+      		get ->
+      			{ok,Quota} = get_user_quota(From#jid.luser),
+      			QuotaResult = list_to_binary(integer_to_list(Quota)),
+		  	IQ#iq{type = result,
+				sub_el =
+				    	[#xmlel{name = <<"query">>,
+					    	attrs =
+							[{<<"xmlns">>, ?NS_SMS_QUOTA},
+						 	{<<"quota">>,QuotaResult}],
+					    children = []}]}
+    end.
+
 
 filter_packet(P) ->
 	{From,To,Message} = P,
@@ -47,7 +69,7 @@ filter_packet(P) ->
 							Body = xml:get_subtag(Message, <<"body">>),
 							Text = unicode:characters_to_list(xml:get_tag_cdata(Body)),
 							send_sms(binary_to_list(SendFrom),binary_to_list(SendTo),Text),
-							ejabberd_hooks:run_fold(sms_sent,{SendFrom,SendTo,erlang:now()}),
+							ejabberd_hooks:run_fold(sms_sent,{SendFrom,SendTo}),
 							decrement_user_quota(SendFrom);
 						true -> 
 							% TODO: send error user to message, mb from node, look for this ways

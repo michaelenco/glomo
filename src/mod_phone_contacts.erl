@@ -39,7 +39,12 @@ process_local_iq(From, _To,
     mnesia:dirty_delete(phone_contacts,From),
     Result = set_contact_phones(jlib:jid_remove_resource(From),Items,[]),
     XMLItems = lists:map(fun(X) -> phone_jid_map(X) end,Result),
-    IQ#iq{type = result,sub_el = XMLItems}.
+    IQ#iq{type = result,
+    sub_el =
+            [#xmlel{name = <<"query">>,
+                attrs =
+                [{<<"xmlns">>, ?NS_PHONE_CONTACTS}],
+            children = XMLItems}]}.
 
 set_contact_phones(From, [], Res) ->
     Res;

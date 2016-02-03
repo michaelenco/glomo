@@ -29,9 +29,11 @@ check_phone(Phone) ->
 	end.
 
 format_phone(Phone) ->
-	Formatted = re:replace(Phone, "[^0-9]", "", [global, {return, list}]),
+	StringPhone =  binary:bin_to_list(Phone),
+	Formatted = re:replace(StringPhone, "[^0-9]", "", [global, {return, list}]),
 	AlbanianLookup = replace_left(Formatted,$0,"355"),
-	replace_left(AlbanianLookup,$8,"7").
+	Final = replace_left(AlbanianLookup,$8,"7"),
+	list_to_binary(Final).
 
 val(X) ->
 	case X of

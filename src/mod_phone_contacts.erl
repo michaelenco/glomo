@@ -51,12 +51,11 @@ set_contact_phones(From, [], Res) ->
 
 set_contact_phones(From, [#xmlel{attrs = Attrs}|T], Res) ->
     {value,PhoneNumber} = xml:get_attr(<<"phone">>,Attrs),
-    FormattedNumber = mod_number_lookup:format_phone(binary:bin_to_list(PhoneNumber)),
-    BinaryFormatted = list_to_binary(FormattedNumber),
-    mnesia:dirty_write(#phone_contacts{user=jlib:jid_to_string(From), phone=BinaryFormatted, bare_phone=PhoneNumber}),
-    case ejabberd_auth:is_user_exists(BinaryFormatted,From#jid.lserver) of 
+    FormattedNumber = mod_number_lookup:format_phone(PhoneNumber),
+    mnesia:dirty_write(#phone_contacts{user=jlib:jid_to_string(From), phone=FormattedNumber, bare_phone=PhoneNumber}),
+    case ejabberd_auth:is_user_exists(FormattedNumber,From#jid.lserver) of 
 	true->
-	    NewRes = [{PhoneNumber,jlib:jid_to_string(#jid{user = BinaryFormatted, server = From#jid.lserver})}| Res];
+	    NewRes = [{PhoneNumber,jlib:jid_to_string(#jid{user = FormattedNumber, server = From#jid.lserver})}| Res];
 	_ -> NewRes = Res
     end,
     set_contact_phones(From, T, NewRes).

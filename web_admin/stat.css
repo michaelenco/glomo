@@ -1,0 +1,19 @@
+.pie-chart {
+    width: 250px;
+    height: 250px;
+    position: relative;
+}
+
+.tooltip {
+    background: #eee;
+    box-shadow: 0 0 5px #999999;
+    color: #333;
+    display: none;
+    font-size: 12px;
+    left: 25%;
+    position: absolute;
+    text-align: center;
+    top: 10%;
+    width: 50%;
+    z-index: 10;
+}

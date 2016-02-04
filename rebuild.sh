@@ -23,5 +23,4 @@ do
     rm $DIR/ejabberd_src/src/$f
 done
 
-echo "Updating web_admin files..."
-cp -r $DIR/web_admin /var/lib/ejabberd/
+$DIR/update_web_admin_files.sh

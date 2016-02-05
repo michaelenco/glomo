@@ -1,8 +1,6 @@
 #!/bin/bash
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-GitOut="$(git status | grep src)"
-FileNameFull=${GitOut:17}
-FileName=${FileNameFull%.erl}
+FileNamePart=$1
+FileName=$1
 if [ -n "$FileName" ]
 then
 	erlc -I /lib/ejabberd/include -I ./ejabberd_src/deps -o ./ejabberd_src/ebin -v src/$FileName.erl

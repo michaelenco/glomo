@@ -612,6 +612,7 @@ modules:
   mod_http_upload_quota:
     max_days: 100
   mod_phone_contacts: []
+  mod_invites: []
   mod_number_lookup: []
   mod_remove_history: []
   mod_uri: []

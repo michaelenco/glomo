@@ -69,8 +69,8 @@ filter_packet(P) ->
 							Body = xml:get_subtag(Message, <<"body">>),
 							Text = unicode:characters_to_list(xml:get_tag_cdata(Body)),
 							send_sms(binary_to_list(SendFrom),binary_to_list(SendTo),Text),
-							ejabberd_hooks:run(sms_sent,[SendFrom,SendTo]),
-							decrement_user_quota(SendFrom);
+							decrement_user_quota(SendFrom),
+							ejabberd_hooks:run(sms_sent,[SendFrom,SendTo]);
 						true -> 
 							% TODO: send error user to message, mb from node, look for this ways
 							ok

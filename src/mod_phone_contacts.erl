@@ -36,10 +36,10 @@ stop(Host) ->
 process_local_iq(From, _To,
 		     #iq{type = set, sub_el = SubEl} = IQ) ->
     Items = xml:get_subtags(SubEl, <<"item">>),
-    mnesia:dirty_delete(phone_contacts,From),
+    mnesia:dirty_delete(phone_contacts,jlib:jid_to_string(jlib:jid_remove_resource(From))),
     Count = set_contact_phones(jlib:jid_remove_resource(From),Items,0),
     XCount = list_to_binary(integer_to_list(Count)),
-    Children = [#xmlel{name = <<"succes">>,attrs = [{<<"count">>,Count}]}],
+    Children = [#xmlel{name = <<"succes">>,attrs = [{<<"count">>,XCount}]}],
     IQ#iq{type = result,
     sub_el =
             [#xmlel{name = <<"query">>,

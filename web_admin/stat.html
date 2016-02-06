@@ -1,16 +1,36 @@
 <html>
     <head>
+	<script src="/admin/node_modules/jquery/dist/jquery.min.js"></script>
+	<script src="/admin/jquery-ui/jquery-ui.min.js"></script>
+	<script src="/admin/node_modules/select2/dist/js/select2.min.js"></script>
+
 	<script src="/admin/node_modules/d3/d3.min.js"></script>
 	<script src="/admin/node_modules/crossfilter/crossfilter.min.js"></script>
 
 	<link rel="stylesheet" href="/admin/stat.css">
+	<link rel="stylesheet" href="/admin/jquery-ui/jquery-ui.min.css">
+	<link rel="stylesheet" href="/admin/node_modules/select2/dist/css/select2.min.css">
 </head>
     <body>
 	<h1>Stats</h1>
-
-	<div id="reg-chart" class="pie-chart">
+	<div>
+	    <select id="select2" multiple="multiple" 
+		style="width:300px;"
+	    ></select>
 	</div>
-	<div id="active-chart" class="pie-chart">
+	<div>
+	    <input id="d1"> - <input id="d2">
+	</div>
+	<div id="reg-chart" class="pie chart">
+	    <label> Users registered </label>
+	</div>
+	<div id="sms-chart" class="pie chart">
+	    <label> Sms sent </label>
+	</div>
+	<div id="active-chart" class="pie chart">
+	    <label> Active users </label>
+	</div>
+	<div id="reg-timeline" class="timeline chart"> 
 	</div>
 
 	<script src="/admin/stat.js"></script>

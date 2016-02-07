@@ -6,11 +6,11 @@
 	 register_user/2, 
 	 init_mcc_table/1, 
 	 user_sent_sms/2, 
-	 close_session/4, 
 	 http_upload_slot_request/5,
 	 webadmin_json_api/2,
 	 user_send_packet/4,
 	 generate_stat_data/0,
+	 session_close/1,
 	 remove_stat_data/0]).  
 
 -include("ejabberd.hrl").
@@ -24,9 +24,10 @@
 -record(stat_register, {user, timestamp}).
 -record(mcc_country, {mcc, country}).
 -record(stat_sms, {user, timestamp}).
--record(stat_sessions, {user, start, length}).
+-record(stat_session, {user, start, length, country}).
 -record(stat_file, {user, size, type, timestamp, country}).
 -record(stat_chat, {user, timestamp, country}).
+-record(session, {sid,usr,us,priority,info}).
 
 -record(last_activity, {us, timestamp, status}).  
 
@@ -48,20 +49,24 @@ start(Host, _Opts) ->
 			[{type,bag},
 			 {disc_copies, [node()]},
 			 {attributes, record_info(fields, stat_chat)}]),
+    mnesia:create_table(stat_session, 
+			[{type,bag},
+			 {disc_copies, [node()]},
+			 {attributes, record_info(fields, stat_session)}]),
 
+    ejabberd_hooks:add(session_close, global, ?MODULE, session_close, 50),
     ejabberd_hooks:add(user_send_packet, Host, ?MODULE, user_send_packet, 50),
     ejabberd_hooks:add(register_user, Host, ?MODULE, register_user, 50),
     ejabberd_hooks:add(http_upload_slot_request, Host, ?MODULE, http_upload_slot_request, 50),
-    ejabberd_hooks:add(sms_sent, Host, ?MODULE, user_sent_sms, 50),
-    ejabberd_hooks:add(close_session, Host, ?MODULE, close_session, 50),
+    ejabberd_hooks:add(sms_sent, global, ?MODULE, user_sent_sms, 50),
     ejabberd_hooks:add(webadmin_json_api, ?MODULE, webadmin_json_api, 50),
     ok.
 
 stop(Host) ->
+    ejabberd_hooks:delete(session_close, Host, ?MODULE, user_send_packet, 50),
     ejabberd_hooks:delete(user_send_packet, Host, ?MODULE, user_send_packet, 50),
     ejabberd_hooks:delete(register_user, Host, ?MODULE, register_user, 50),
     ejabberd_hooks:delete(http_upload_slot_request, Host, ?MODULE, http_upload_slot_request, 50),
-    ejabberd_hooks:delete(close_session, Host, ?MODULE, close_session, 50),
     ejabberd_hooks:delete(sms_sent, Host, ?MODULE, user_sent_sms, 50),
 
     ejabberd_hooks:delete(webadmin_json_api, ?MODULE, webadmin_json_api, 50),
@@ -123,14 +128,29 @@ webadmin_json_api(Acc, #request{path = [<<"api">>, <<"stat">>]}) ->
 		      ]),
 	    qlc:e(Q)
     end,
+    SessionQuery = fun() ->
+	    Q = qlc:q([
+		       [{<<"start">>, now_to_timestamp(Now)},
+			{<<"country">>, Country},
+			{<<"length">>, Length},
+			{<<"user">>, User}] ||  
+		       #stat_session{user=User, 
+				  start=Now,
+				  length=Length,
+				  country=Country} <-mnesia:table(stat_session)
+		      ]),
+	    qlc:e(Q)
+    end,
 
     {atomic, Users} = mnesia:transaction(UserQuery),
     {atomic, Sms} = mnesia:transaction(SmsQuery),
     {atomic, File} = mnesia:transaction(FileQuery),
     {atomic, Chat} = mnesia:transaction(ChatQuery),
+    {atomic, Session} = mnesia:transaction(SessionQuery),
     {stop, [{<<"users">>, Users},
 	    {<<"chat">>, Chat},
 	    {<<"sms">>, Sms},
+	    {<<"session">>, Session},
 	    {<<"file">>, File}
 	   ]}.
 
@@ -146,9 +166,12 @@ user_sent_sms(From, _To) ->
     mnesia:dirty_write(#stat_sms{user=From, timestamp=os:timestamp()}),
     ok.
 
-close_session({SessionStart, _}, #jid{user=User, server=Server},_, _) ->
-    io:format("session closed ~n"),
-    mnesia:dirty_write(#stat_sessions{user={User, Server}, start=SessionStart, length=time:now_diff(os:timestamp(), SessionStart)}),
+session_close(SID) -> 
+    [#session{sid={Timestamp,_}, us={User,_}}] = mnesia:dirty_read(session,SID),
+    [#user_countries{country=Mcc}] = mnesia:dirty_read(user_countries,User),
+    [#mcc_country{country=Country}] = mnesia:dirty_read(mcc_country, Mcc),
+    Length = timer:now_diff(os:timestamp(),Timestamp),
+    mnesia:dirty_write(#stat_session{user=User, country=Country, start=Timestamp, length=Length}),
     ok.
 
 http_upload_slot_request(Acc, #jid{user=User} ,_,Size,ContentType) -> 
@@ -160,7 +183,7 @@ http_upload_slot_request(Acc, #jid{user=User} ,_,Size,ContentType) ->
 	country=Country,
 	timestamp=os:timestamp(),
 	type=ContentType}),
-    Acc.
+    Acc. 
 
 user_send_packet(Packet,_,#jid{user=User},_To) ->
     case xml:get_tag_attr_s(<<"type">>,Packet) of
@@ -207,12 +230,14 @@ init_mcc_table(FilePath) ->
 remove_stat_data() ->
     mnesia:clear_table(stat_sms),
     mnesia:clear_table(stat_register),
+    mnesia:clear_table(stat_session),
     mnesia:clear_table(stat_chat),
     mnesia:clear_table(stat_file).
 
 generate_stat_data() ->
     add_stat_users(100),
     add_stat_sms(200),
+    add_stat_session(200),
     add_stat_chat(400),
     add_stat_files(200).
 
@@ -249,7 +274,7 @@ add_stat_sms(Num) ->
     Ts = {Tmp div 1000000, Tmp rem 1000000, 0},
 
     mnesia:dirty_write(#stat_sms{
-			  user=random_stat_user(),
+			  user=User,
 			  timestamp = Ts}),
     add_stat_sms(Num-1).
 
@@ -286,7 +311,27 @@ add_stat_chat(Num) ->
     Ts = {Tmp div 1000000, Tmp rem 1000000, 0},
 
     mnesia:dirty_write(#stat_chat{
-			  user=random_stat_user(),
+			  user=User,
 			  country=Country,
 			  timestamp = Ts}),
     add_stat_chat(Num-1).
+
+
+add_stat_session(0) -> ok;
+add_stat_session(Num) ->
+    User = random_stat_user(),
+    [#user_countries{country=Mcc}] = mnesia:dirty_read(user_countries,User),
+    [#mcc_country{country=Country}] = mnesia:dirty_read(mcc_country, Mcc),
+    {MSec, Sec, _} = os:timestamp(),
+    [#stat_register{timestamp={MSec1, Sec1, _}}] = mnesia:dirty_read(stat_register, User),
+    Period = (MSec-MSec1)*1000000 + (Sec-Sec1),
+    Tmp = MSec*1000000+Sec-random:uniform(Period),
+    Ts = {Tmp div 1000000, Tmp rem 1000000, 0},
+    Length = random:uniform(300000000),
+
+    mnesia:dirty_write(#stat_session{
+			  user=User,
+			  country=Country,
+			  length=Length,
+			  start = Ts}),
+    add_stat_session(Num-1).

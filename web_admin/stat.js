@@ -6,6 +6,7 @@ var userData = data.users
 var smsData=data.sms
 var fileData=data.file
 var chatData=data.chat
+var sessionData=data.session
 var total_regs = data.length
 
 var date_formatter = d3.time.format("%d.%m.%y")	
@@ -23,6 +24,14 @@ Array.prototype.forEach.call(chatData, function(d,i) {
 Array.prototype.forEach.call(fileData, function(d,i) {
     d.date = new Date(d.timestamp)
 })
+
+var total_sessions = sessionData.length
+var average = 0
+sessionData.forEach(function(d) {
+    average+=d.length/total_sessions
+})
+average = Math.round(average/1000000)
+$('#average').html(average+' sec')
 
 var file_types = ['image','audio','video','application']
 function getMiB(bytes) {

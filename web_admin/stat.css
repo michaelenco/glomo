@@ -1,0 +1,82 @@
+.pie {
+    width: 250px;
+    height: 280px;
+    position: relative;
+    float: left;
+}
+
+.pie-segment.inactive {
+    opacity: 0.3;
+    /*fill: white;*/
+    /*stroke: black;*/
+}
+
+.pie-segment.active {
+    stroke-width: 1;
+    stroke: black
+}
+
+.pie-segment {
+    opacity: 1.0;
+}
+.tooltip {
+    background: #eee;
+    box-shadow: 0 0 5px #999999;
+    color: #333;
+    display: none;
+    font-size: 12px;
+    position: absolute;
+    text-align: center;
+    width: 100px;
+    z-index: 10;
+}
+.tooltip-line {
+    stroke: black;
+    stroke-width: 1;
+    stroke-dasharray: 3.3;
+    opacity: 0.7;
+    shape-rendering: crispEdges;
+}
+
+.timeline {
+    clear: left;
+    height: 300px;
+    width: 800px;
+}
+
+.chart {
+    position:relative;
+}
+
+.line {
+    fill: none;
+    stroke-width: 3;
+    stroke: black;
+}
+
+.reg.line {
+    stroke: #1f77b4;
+}
+.sms.line {
+    stroke: #ff7f0e
+}
+
+.axis path,
+.axis line {
+    fill: none;
+    stroke: grey;
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+}
+
+.brush .extent {
+    stroke: black;
+    fill-opacity: .125;
+    shape-rendering: crispEdges;
+}
+.timeline .tooltip {
+    text-align: left;
+}
+#file-timeline .tooltip {
+    width:170px;
+}

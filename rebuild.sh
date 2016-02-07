@@ -8,7 +8,6 @@ do
 done
 
 cp $DIR/rebar.config $DIR/ejabberd_src/rebar.config
-cp $DIR/rel/reltool.config.script $DIR/ejabberd_src/rel/reltool.config.script
 
 cd $DIR/ejabberd_src
 echo "Compiling..."
@@ -23,3 +22,5 @@ do
     echo "$f..."
     rm $DIR/ejabberd_src/src/$f
 done
+
+$DIR/update_web_admin_files.sh

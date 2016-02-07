@@ -40,7 +40,7 @@
 
 .timeline {
     clear: left;
-    height: 250px;
+    height: 300px;
     width: 800px;
 }
 
@@ -73,4 +73,10 @@
     stroke: black;
     fill-opacity: .125;
     shape-rendering: crispEdges;
+}
+.timeline .tooltip {
+    text-align: left;
+}
+#file-timeline .tooltip {
+    width:170px;
 }

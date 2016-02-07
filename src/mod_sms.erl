@@ -58,7 +58,7 @@ filter_packet(P) ->
 	{xmlel, Name, Attrs, _Els} = Message,
 	if 
 		Name == <<"message">> ->
-			Type = xml:get_tag_attr_s(list_to_binary("type"), Message),
+			Type = fxml:get_tag_attr_s(list_to_binary("type"), Message),
 			if 
 				Type == <<"sms">> ->
 					SendFrom = From#jid.luser,
@@ -66,8 +66,8 @@ filter_packet(P) ->
 					if 
 						UserQuota > 0 ->
 							SendTo = To#jid.luser,
-							Body = xml:get_subtag(Message, <<"body">>),
-							Text = unicode:characters_to_list(xml:get_tag_cdata(Body)),
+							Body = fxml:get_subtag(Message, <<"body">>),
+							Text = unicode:characters_to_list(fxml:get_tag_cdata(Body)),
 							send_sms(binary_to_list(SendFrom),binary_to_list(SendTo),Text),
 							decrement_user_quota(SendFrom),
 							ejabberd_hooks:run(sms_sent,[SendFrom,SendTo]);

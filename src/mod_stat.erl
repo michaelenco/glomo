@@ -186,7 +186,7 @@ http_upload_slot_request(Acc, #jid{user=User} ,_,Size,ContentType) ->
     Acc. 
 
 user_send_packet(Packet,_,#jid{user=User},_To) ->
-    case xml:get_tag_attr_s(<<"type">>,Packet) of
+    case fxml:get_tag_attr_s(<<"type">>,Packet) of
 	<<"chat">> -> 
 	    [#user_countries{country=Mcc}] = mnesia:dirty_read(user_countries,User),
 	    [#mcc_country{country=Country}] = mnesia:dirty_read(mcc_country, Mcc),
@@ -200,17 +200,17 @@ user_send_packet(Packet,_,#jid{user=User},_To) ->
 
 init_mcc_table(FilePath) ->
     {ok, XmlString} = file:read_file(FilePath),
-    #xmlel{children=Carriers} = xml_stream:parse_element(XmlString),
+    #xmlel{children=Carriers} = fxml_stream:parse_element(XmlString),
 
     MccCountry = lists:filtermap(fun (X) ->
 					 case X of 
 					     #xmlel{} ->
-						 CountryBin = xml:get_path_s(X, [{elem, <<"country">>}, cdata]),
+						 CountryBin = fxml:get_path_s(X, [{elem, <<"country">>}, cdata]),
 						 TrimmedCountryStr = re:replace(binary_to_list(CountryBin),
 									       "(^\\s+)|(\\s+$)",
 									       "", 
 									       [global,{return,list}]),
-						 Mcc = xml:get_path_s(X, [{elem, <<"mcc">>}, cdata]),
+						 Mcc = fxml:get_path_s(X, [{elem, <<"mcc">>}, cdata]),
 						 {true,{list_to_binary(TrimmedCountryStr),Mcc}};
 					     _ -> false
 					 end

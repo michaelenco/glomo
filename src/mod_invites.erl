@@ -34,7 +34,7 @@ stop(Host) ->
 
 batch_invite(From, _To,
 		     #iq{type = set, sub_el = SubEl} = IQ) ->
-    Items = xml:get_subtags(SubEl, <<"item">>),
+    Items = fxml:get_subtags(SubEl, <<"item">>),
     Result = set_invited_phones(jlib:jid_remove_resource(From),Items),
     IQ#iq{type = result,
         sub_el =
@@ -47,7 +47,7 @@ set_invited_phones(From, []) ->
     ok;
 
 set_invited_phones(From, [#xmlel{attrs = Attrs}|T]) ->
-    {value,PhoneNumber} = xml:get_attr(<<"phone">>,Attrs),
+    {value,PhoneNumber} = fxml:get_attr(<<"phone">>,Attrs),
     FormattedNumber = mod_number_lookup:format_phone(PhoneNumber),
     Joined = <<"false">>,
     mnesia:dirty_write(#user_invites{user=jlib:jid_to_string(From), phone=FormattedNumber}),

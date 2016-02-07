@@ -414,6 +414,7 @@ acl:
   admin:
     user:
       - "admin": "front.glomo.im"
+      - "root": "front.glomo.im"
   ##     - "ermine": "example.org"
   ##
   ## Blocked users

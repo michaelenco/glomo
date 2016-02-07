@@ -27,9 +27,9 @@ stop(Host) ->
     ok.
 
 process_local_iq(From,_To,#iq{type=set, sub_el = SubEl} = IQ) -> 
-    Tag = xml:get_subtag(SubEl, <<"reg_id">>),
+    Tag = fxml:get_subtag(SubEl, <<"reg_id">>),
     {xmlel,_,_,Children} = Tag,
-    RegId = xml:get_cdata(Children),
+    RegId = fxml:get_cdata(Children),
     mnesia:dirty_write(#gcm_users{user=jlib:jid_to_string(jlib:jid_remove_resource(From)), gcm_key = RegId}),
     IQ#iq{type=result, sub_el = [SubEl]}.
 

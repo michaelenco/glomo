@@ -20,9 +20,9 @@ stop(Host) ->
 				     ?NS_REMOVE_HISTORY).
 
 process_local_iq(From,_To,#iq{type=set, sub_el = SubEl} = IQ) -> 
-    Tag = xml:get_subtag(SubEl, <<"id">>),
+    Tag = fxml:get_subtag(SubEl, <<"id">>),
     {xmlel,_,_,Children} = Tag,
-    MessageId = binary_to_list(xml:get_cdata(Children)),
+    MessageId = binary_to_list(fxml:get_cdata(Children)),
     Messages = ultra_dirty_select(MessageId),
     lists:foreach(fun(Rec) ->
 			  ok = mnesia:dirty_delete_object(Rec)

@@ -40,12 +40,12 @@ notify_registered(Joined, [{Jid, PhoneId}|T]) ->
     notify_registered(Joined, T).
 
 offline_message(From, To, Packet) ->
-    case xml:get_tag_attr_s(<<"type">>,Packet) of
+    case fxml:get_tag_attr_s(<<"type">>,Packet) of
 	<<"chat">> -> 
 	    Message = [
 		       {<<"type">>, <<"chat">>},
 		       {<<"jid">>, jlib:jid_to_string(jlib:jid_remove_resource(From))},
-		       {<<"message">>, xml:get_path_s(Packet,[{elem, <<"body">>},cdata])}
+		       {<<"message">>, fxml:get_path_s(Packet,[{elem, <<"body">>},cdata])}
 		      ],
 
 	    mod_gcm:push(To,jsx:encode(Message)),
@@ -63,7 +63,7 @@ muc_filter_message(Pkt, #state{config = Config, jid=JID, users=Users, affiliatio
     Message = [
 	       {<<"type">>, <<"groupchat">>},
 	       {<<"jid">>, jlib:jid_to_string(jlib:jid_remove_resource(From))},
-	       {<<"message">>, xml:get_path_s(Pkt, [{elem, <<"body">>}, cdata])},
+	       {<<"message">>, fxml:get_path_s(Pkt, [{elem, <<"body">>}, cdata])},
 	       {<<"room">>, jlib:jid_to_string(JID)}
 	      ],
     lists:foreach(fun(User) ->

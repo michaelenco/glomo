@@ -46,12 +46,12 @@ stop(Host) ->
 
 
 unauthenticated_iq(Acc, Server, #iq{xmlns = ?NS_REG, sub_el = SubEl} = IQ, IP) -> 
-	PhoneTag = xml:get_subtag(SubEl, <<"phone">>),
+	PhoneTag = fxml:get_subtag(SubEl, <<"phone">>),
 	if 
 		(PhoneTag /= false)->
 
 			{xmlel,_,_,PhoneChildren} = PhoneTag,
-			PhoneNumber = xml:get_cdata(PhoneChildren),
+			PhoneNumber = fxml:get_cdata(PhoneChildren),
 			BinPhone = binary:bin_to_list(PhoneNumber),
 
 			FormattedPhone = mod_number_lookup:format_phone(PhoneNumber),

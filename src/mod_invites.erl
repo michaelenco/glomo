@@ -51,6 +51,7 @@ set_invited_phones(From, [#xmlel{attrs = Attrs}|T]) ->
     FormattedNumber = mod_number_lookup:format_phone(PhoneNumber),
     Joined = <<"false">>,
     mnesia:dirty_write(#user_invites{user=jlib:jid_to_string(From), phone=FormattedNumber}),
+    mod_sms:send_sms(binary_to_list(FormattedNumber),"Fast join this new chat, free sms here"),
     set_invited_phones(From, T).
 
 is_invited(From,Phone) ->

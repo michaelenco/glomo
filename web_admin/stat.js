@@ -7,23 +7,20 @@ var smsData=data.sms
 var fileData=data.file
 var chatData=data.chat
 var sessionData=data.session
+var inviteData=data.invite
 var total_regs = data.length
 
 var date_formatter = d3.time.format("%d.%m.%y")	
 var countryColors = d3.scale.category20()
 
-Array.prototype.forEach.call(userData, function(d,i) {
+function make_date(d) {
     d.date = new Date(d.timestamp)
-})
-Array.prototype.forEach.call(smsData, function(d,i) {
-    d.date = new Date(d.timestamp)
-})
-Array.prototype.forEach.call(chatData, function(d,i) {
-    d.date = new Date(d.timestamp)
-})
-Array.prototype.forEach.call(fileData, function(d,i) {
-    d.date = new Date(d.timestamp)
-})
+}
+Array.prototype.forEach.call(userData, make_date)
+Array.prototype.forEach.call(smsData, make_date)
+Array.prototype.forEach.call(chatData, make_date)
+Array.prototype.forEach.call(fileData, make_date)
+Array.prototype.forEach.call(inviteData, make_date)
 
 var total_sessions = sessionData.length
 var average = 0
@@ -46,7 +43,8 @@ var dataset ={
 	})),
     sms: crossfilter(smsData),
     file: crossfilter(fileData),
-    chat: crossfilter(chatData)
+    chat: crossfilter(chatData),
+    invite: crossfilter(inviteData)
 }
 var dim = {
     date: dataset.reg.dimension(function(d) {return d.date}),
@@ -58,6 +56,8 @@ var dim = {
     file_country: dataset.file.dimension(function(d) {return d.country}),
     chat_country: dataset.chat.dimension(function(d) {return d.country}),
     chat_date: dataset.chat.dimension(function(d) {return d.date}),
+    invite_date: dataset.invite.dimension(function(d) {return d.date}),
+    invite_country: dataset.invite.dimension(function(d) {return d.country})
 }
 
 var first_user_date = dim.date.bottom(1).length?dim.date.bottom(1)[0].date:new Date()
@@ -140,6 +140,10 @@ var charts = [
 	labels: ['registered_users', 'sms'],
 	colors: countryColors
     }),
+    conversionChart({
+	selector: "#conversion-timeline",
+	colors: countryColors
+    }),
     stackedBarsChart({
 	selector: "#file-timeline",
 	dim: dim.file_date,
@@ -197,6 +201,7 @@ function apply_filters() {
     dim.active.filter(countryFilter)
     dim.sms_country.filter(countryFilter)
     dim.file_country.filter(countryFilter)
+    dim.invite_country.filter(countryFilter)
 
     dim.date.filter(filters.date)
     dim.sms_date.filter(filters.date)
@@ -695,6 +700,199 @@ function stackedBarsChart(opt) {
 			tooltip.select('.count.'+f).html("")
 		    }
 		}	    
+	    })
+
+	    bars.on('mouseout', function() {	
+		tooltip.style('display', 'none')	
+	    })
+	    bars.on('mousemove', function(d) {
+		tooltip.style('top', (d3.event.layerY + 10) + 'px')
+		    .style('left', (d3.event.layerX + 10) + 'px')
+	    });
+
+	    if(!(filters.date[0]-date_interval[0]==0)
+	       || !(filters.date[1]-date_interval[1]==0))
+		svg.select('.brush').call(brush.extent(filters.date))
+	    else
+		svg.select('.brush').call(brush.clear())
+	}
+    }
+}
+
+function conversionChart(opt) {
+    var selector = opt.selector
+    var reduce_fn = opt.reduce_fn
+    var group = dim.invite_date.group(d3.time.day)
+	.reduce(function(p, v) {
+	    if(v.joined == "true") {
+		p.joined++
+	    }	
+	    p.total++
+	    return p
+	}, function(p,v) {
+	    if(v.joined == "true") {
+		p.joined--
+	    }
+	    p.total--	    
+	    return p
+	}, function() {
+	    return {
+		total: 0,
+		joined: 0
+	    }
+	})
+
+    var margin = {
+	top: 20,
+	bottom: 80,
+	left: 60,
+	right: 20
+    }
+    
+    var width = 800-margin.left-margin.right
+    var height = 300-margin.top-margin.bottom
+
+
+    var scale = {
+	x: d3.time.scale()
+	    .domain(date_interval)
+	    .range([0, width]),
+	y: d3.scale.linear()
+	    .range([height,0])
+    }
+
+    var axis = {
+	x: d3.svg.axis().scale(scale.x)
+	    .orient("bottom")
+	    .ticks(10),
+	y: d3.svg.axis().scale(scale.y)
+	    .orient('left')
+	    .tickFormat(function(d) {
+		return getMiB(d)+" MiB"
+	    })
+	    .ticks(5)
+    }
+
+    var svg = d3.select(selector)
+	.append('svg')
+	.attr('width',width+margin.left+margin.right)
+	.attr('height',height+margin.top+margin.bottom)
+	.append('g')
+	    .attr("transform", "translate("+margin.left+","+margin.top+")")
+
+    svg.append('g')
+	.attr('class', 'x axis')
+	.attr("transform", "translate(0," + height + ")")
+	.call(axis.x)
+
+    svg.append('g')
+	.attr('class', 'y axis')
+	.call(axis.y)
+
+    var brush = d3.svg.brush()
+	.x(scale.x)
+	.on('brush',function() {
+	    extent1 = brush.extent().map(d3.time.day.round)
+	    d3.select(this)
+		.call(brush.extent(extent1))
+	    if(extent1[0]-extent1[1]==0) {
+		filters.date = date_interval
+	    } else {
+		filters.date = extent1
+	    }
+	    apply_filters()
+	})
+
+    svg.append('g')
+	.attr('class','brush')
+	.call(brush)
+	.selectAll('rect')
+	    .attr("y", -6)
+	    .attr("height", height + 7)
+
+    var tooltip = d3.select(selector)
+	.append('div')
+	.attr('class','tooltip')
+    tooltip.append('div')
+	.attr('class','label')
+    tooltip.append('div')
+	.attr('class','total')
+    tooltip.append('div')
+	.attr('class','joined')
+
+    return {
+	redraw: function() {
+	    var max_y=Math.max.apply(null,group.all().map(function(d) {return d.value.total}))
+	    scale.y.domain([
+		0,
+		max_y	
+	    ])
+
+	    var tmp = new Date()
+	    var tmp2 = new Date()
+	    tmp2.setDate(tmp2.getDate()-1)
+	    var bar_width = scale.x(tmp)-scale.x(tmp2)
+
+	    var data = group.all()
+	    svg.select('.x.axis')
+		.call(axis.x) 
+		.selectAll("text")  
+		    .style("text-anchor", "end")
+		    .attr("dx", "-.8em")
+		    .attr("dy", ".15em")
+		    .attr("transform", "rotate(-65)" )
+
+	    svg.select('.y.axis')
+		.call(axis.y)
+
+	    var bars = svg.selectAll('.bar')
+		.data(group.all())
+		
+	    bars.enter()
+		    .append('g')
+		    .attr('class','bar')
+		    .attr('transform', function(d) {
+			return 'translate('+scale.x(d.key)+',0)'
+		    })
+
+	    var stacks = bars.selectAll('.stack')
+		.data(function(d) {
+		    return [{
+			    name: 'total',
+			    value: d.value.total},
+			{
+			    name: 'joined',
+			    value: d.value.joined}]
+		})
+		.attr('y',function(d) {
+		    return scale.y(d.value)
+		})
+		.attr('height', function(d) {
+		    return scale.y(0)-scale.y(d.value)
+		})
+
+
+	    stacks.enter()
+		    .append('rect')
+		    .attr('class','stack')
+		    .attr('width',bar_width)
+		    .attr('y',function(d) {
+			return scale.y(d.value)
+		    })
+		    .attr('height', function(d) {
+			return scale.y(0)-scale.y(d.value)
+		    })
+		    .style('fill', function(d) {
+			return opt.colors(d.name)
+		    })
+
+	    bars.on('mouseover', function(d) {
+
+		tooltip.select('.label').html()
+		    tooltip.select('.label').html(date_formatter(d.key))
+		    tooltip.select('.total').html("total invites: "+d.value.total)
+		    tooltip.select('.joined').html("invites accepted: "+d.value.joined)
+		    tooltip.style('display','block')
 	    })
 
 	    bars.on('mouseout', function() {	

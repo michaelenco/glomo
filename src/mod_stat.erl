@@ -21,6 +21,10 @@
 -include_lib("stdlib/include/qlc.hrl").
 
 -record(user_countries,{user= <<"">>, country = <<"">>}).
+-record(phone_contacts,{user, phone, bare_phone, joined}).
+-record(user_invites,{user= <<"">>, phone = <<"">>, timestamp}).
+
+
 -record(stat_register, {user, timestamp}).
 -record(mcc_country, {mcc, country}).
 -record(stat_sms, {user, timestamp}).
@@ -141,16 +145,38 @@ webadmin_json_api(Acc, #request{path = [<<"api">>, <<"stat">>]}) ->
 		      ]),
 	    qlc:e(Q)
     end,
+    InviteQuery = fun() ->
+	    Q = qlc:q([
+		       [{<<"timestamp">>, now_to_timestamp(Now)},
+			{<<"country">>, Country},
+			{<<"joined">>, Joined}] ||  
+		       #user_invites{user=User,
+				    phone=P, 
+				  timestamp=Now} <-mnesia:table(user_invites),
+		       #phone_contacts{user=U2,
+				       phone = P2,
+				       joined=Joined} <-mnesia:table(phone_contacts),
+		       User==U2 andalso P==P2,
+		       #user_countries{user=U3, country=Mcc} <-mnesia:table(user_countries),
+		       U3==User,
+		       #mcc_country{mcc=Mcc2, country=Country} <-mnesia:table(mcc_country),
+		       Mcc==Mcc2
+		      ]),
+	    qlc:e(Q)
+    end,
+
 
     {atomic, Users} = mnesia:transaction(UserQuery),
     {atomic, Sms} = mnesia:transaction(SmsQuery),
     {atomic, File} = mnesia:transaction(FileQuery),
     {atomic, Chat} = mnesia:transaction(ChatQuery),
     {atomic, Session} = mnesia:transaction(SessionQuery),
+    {atomic, Invite} = mnesia:transaction(InviteQuery),
     {stop, [{<<"users">>, Users},
 	    {<<"chat">>, Chat},
 	    {<<"sms">>, Sms},
 	    {<<"session">>, Session},
+	    {<<"invite">>, Invite},
 	    {<<"file">>, File}
 	   ]}.
 
@@ -239,6 +265,7 @@ generate_stat_data() ->
     add_stat_sms(200),
     add_stat_session(200),
     add_stat_chat(400),
+    add_stat_invites(100),
     add_stat_files(200).
 
 random_mcc() ->
@@ -335,3 +362,24 @@ add_stat_session(Num) ->
 			  length=Length,
 			  start = Ts}),
     add_stat_session(Num-1).
+
+add_stat_invites(0) -> ok;
+add_stat_invites(Num) ->
+    User = random_stat_user(),
+    Invitee = list_to_binary([random:uniform(9)+48 || _ <- lists:seq(1,11)]),
+    {MSec, Sec, _} = os:timestamp(),
+    [#stat_register{timestamp={MSec1, Sec1, _}}] = mnesia:dirty_read(stat_register, User),
+    Period = (MSec-MSec1)*1000000 + (Sec-Sec1),
+    Tmp = MSec*1000000+Sec-random:uniform(Period),
+    Ts = {Tmp div 1000000, Tmp rem 1000000, 0},
+    Joined = lists:nth(random:uniform(2), [<<"true">>, <<"false">>]),
+
+    mnesia:dirty_write(#phone_contacts{
+			  user=User,
+			  phone=Invitee,
+			  bare_phone=Invitee,
+			  joined=Joined}),
+    mnesia:dirty_write(#user_invites{user = User, phone = Invitee, timestamp = Ts}),
+    add_stat_invites(Num-1).
+
+

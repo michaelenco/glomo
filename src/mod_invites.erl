@@ -16,7 +16,7 @@
 
 -define(NS_INVITES, <<"jabber:iq:glomo_invites">>). 
 
--record(user_invites,{user= <<"">>, phone = <<"">>}).
+-record(user_invites,{user= <<"">>, phone = <<"">>, timestamp}).
 
 start(Host, Opts) ->
     mnesia:create_table(user_invites,
@@ -50,7 +50,7 @@ set_invited_phones(From, [#xmlel{attrs = Attrs}|T]) ->
     {value,PhoneNumber} = fxml:get_attr(<<"phone">>,Attrs),
     FormattedNumber = mod_number_lookup:format_phone(PhoneNumber),
     Joined = <<"false">>,
-    mnesia:dirty_write(#user_invites{user=jlib:jid_to_string(From), phone=FormattedNumber}),
+    mnesia:dirty_write(#user_invites{user=jlib:jid_to_string(From), phone=FormattedNumber, timestamp=os:timestamp()}),
     mod_sms:send_sms(binary_to_list(FormattedNumber),"Holla! Let's use Glomo for chating! http://glomo.im"),
     set_invited_phones(From, T).
 

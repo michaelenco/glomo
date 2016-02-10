@@ -16,7 +16,7 @@ stop(Host) ->
 check_phone(Phone) ->
 	CleanPhone = format_phone(Phone),
 	UrlPhone = binary:bin_to_list(CleanPhone),
-	case httpc:request(?SMS_BASE_URL++CleanPhone) of
+	case httpc:request(?SMS_BASE_URL++UrlPhone) of
 		{ok,Result} ->
 			{_,_,Body} = Result,
 			{XMLBody,_} = xmerl_scan:string(Body),

@@ -52,9 +52,8 @@ unauthenticated_iq(Acc, Server, #iq{xmlns = ?NS_REG, sub_el = SubEl} = IQ, IP) -
 
 			{xmlel,_,_,PhoneChildren} = PhoneTag,
 			PhoneNumber = fxml:get_cdata(PhoneChildren),
-			BinPhone = binary:bin_to_list(PhoneNumber),
-
 			FormattedPhone = mod_number_lookup:format_phone(PhoneNumber),
+			SmsPhone = binary:bin_to_list(FormattedPhone),
 
 			NewPasswd = list_to_binary(random_password(3)),
 
@@ -63,7 +62,7 @@ unauthenticated_iq(Acc, Server, #iq{xmlns = ?NS_REG, sub_el = SubEl} = IQ, IP) -
 			if 
 				(UserExists == true) ->
 					ejabberd_auth:set_password(FormattedPhone,Server,NewPasswd),
-					SmsUrl = ?SMS_BASE_URL ++ BinPhone ++ "&text=" ++ binary_to_list(NewPasswd),
+					SmsUrl = ?SMS_BASE_URL ++ SmsPhone ++ "&text=" ++ binary_to_list(NewPasswd),
 					{ok, {{Version, 202, ReasonPhrase}, Headers, Body}} = httpc:request(SmsUrl),
 					Jid = jlib:jid_to_string(#jid{user = FormattedPhone, server = Server}),
 					jlib:iq_to_xml(IQ#iq{
@@ -83,7 +82,7 @@ unauthenticated_iq(Acc, Server, #iq{xmlns = ?NS_REG, sub_el = SubEl} = IQ, IP) -
 					if
 						(Iv == true) ->
 							{atomic, ok} = ejabberd_auth:try_register(FormattedPhone, Server, NewPasswd),
-							SmsUrl = ?SMS_BASE_URL ++ BinPhone ++ "&text=" ++ binary_to_list(NewPasswd),
+							SmsUrl = ?SMS_BASE_URL ++ SmsPhone ++ "&text=" ++ binary_to_list(NewPasswd),
 							{ok, {{Version, 202, ReasonPhrase}, Headers, Body}} = httpc:request(SmsUrl),
 							ok = mnesia:dirty_write(#user_countries{user = FormattedPhone, country = list_to_binary(Mcc)}),
 							Jid = jlib:jid_to_string(#jid{user = FormattedPhone, server = Server}),

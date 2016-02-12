@@ -22,8 +22,9 @@ check_phone(Phone) ->
 			{XMLBody,_} = xmerl_scan:string(Body),
 			[{xmlText, _, _, _, Ip, _}] = xmerl_xpath:string("//ip/text()", XMLBody),
 			[{xmlText, _, _, _, Iv, _}] = xmerl_xpath:string("//iv/text()", XMLBody),
+			io:format("~n~n ~p ~n~n",[Iv]),
 			if 
-				( Iv /= true) ->
+				( Iv /= "true") ->
 					error;
 				true->
 					[{xmlText, _, _, _, Mcc, _}] = xmerl_xpath:string("//mcc/text()", XMLBody),

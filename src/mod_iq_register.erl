@@ -12,9 +12,8 @@
 
 -export([start/2, 
 	 stop/1, 
-	 unauthenticated_iq/4]).
-
--export([random_password/0, random_char/0]).
+	 unauthenticated_iq/4,
+	 get_random_string/2]).
 
 -include("ejabberd.hrl").
 -include("logger.hrl").
@@ -23,12 +22,12 @@
 
 -record(user_countries,{user= <<"">>, country = <<"">>}).
 
-random_char() ->
-	Val = random:uniform(length(?ALLOWED_CHARS)),
-	lists:nth(Val, ?ALLOWED_CHARS).
-
-random_password() ->
-	["random"].
+get_random_string(Length, AllowedChars) ->
+ 	lists:foldl(fun(_, Acc) ->
+                        [lists:nth(random:uniform(length(AllowedChars)),
+                                   AllowedChars)]
+                            ++ Acc
+                end, [], lists:seq(1, Length)).
 
 start(Host, Opts) ->
 	mnesia:create_table(user_countries,
@@ -53,7 +52,7 @@ unauthenticated_iq(Acc, Server, #iq{xmlns = ?NS_REG, sub_el = SubEl} = IQ, IP) -
 			FormattedPhone = mod_number_lookup:format_phone(PhoneNumber),
 			SmsPhone = binary:bin_to_list(FormattedPhone),
 
-			NewPasswd = list_to_binary(random_password()),
+			NewPasswd = list_to_binary(get_random_string(6,["1","2","3","4","5","6","7","8","9","0"])),
 
 			UserExists = ejabberd_auth:is_user_exists(FormattedPhone,Server),
 

@@ -10,6 +10,7 @@
 -include("mod_muc_room.hrl").
 
 -record(phone_contacts,{user= <<"">>, phone = <<"">>, bare_phone = <<"">>}).
+-record(user_room, {key, status}).
 
 
 start(Host, Opts) ->
@@ -55,19 +56,35 @@ offline_message(From, To, Packet) ->
 	    ok
     end. 
 
-muc_filter_message(Pkt, #state{config = Config, jid=JID, users=Users, affiliations=Aff, subject=Subject} = MUCState, RoomJID, From, FromNick) ->
+muc_filter_message(Pkt, 
+		   #state{config = Config, 
+			       jid=#jid{user = RoomId, server = RoomServer} = JID, 
+			       users=Users, 
+			       affiliations=Aff, 
+			       subject=Subject}, 
+		   _RoomJID, 
+		   From, 
+		   _FromNick) ->
     OnlineUsers = lists:map(fun(JID) -> jlib:jid_remove_resource(JID) end,
 			    dict:fetch_keys(Users)),
     AllUsers = dict:fetch_keys(Aff),
     OfflineUsers = AllUsers -- OnlineUsers,
+    JoinedOfflineUsers = lists:filter(fun({User, Server, _}) ->
+	     [] /= mnesia:dirty_match_object(user_room, 
+		     #user_room{key = {User,Server,RoomId, RoomServer}, 
+			status = <<"joined">>})
+	  end,
+	  OfflineUsers),
+
     Message = [
 	       {<<"type">>, <<"groupchat">>},
 	       {<<"jid">>, jlib:jid_to_string(jlib:jid_remove_resource(From))},
 	       {<<"message">>, fxml:get_path_s(Pkt, [{elem, <<"body">>}, cdata])},
-	       {<<"room">>, jlib:jid_to_string(JID)}
+	       {<<"room">>, jlib:jid_to_string(JID)},
+	       {<<"subject">>, Subject}
 	      ],
     lists:foreach(fun(User) ->
 			  mod_gcm:push(User, jsx:encode(Message))
 		  end,
-		  OfflineUsers),
+		  JoinedOfflineUsers),
     Pkt.

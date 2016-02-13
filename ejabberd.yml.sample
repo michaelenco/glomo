@@ -590,6 +590,7 @@ modules:
     access_admin: none
     max_user_conferences: 100
     min_message_interval: 0.4
+    history_size: 0
     default_room_options:
       allow_user_invites: true
       allow_private_messages: false
@@ -623,6 +624,7 @@ modules:
       api_key: "AIzaSyA7bWapsoi8n-Xjdpw6oV5bx5nyfadSzKE"
   mod_push: []
   mod_stat: []
+  mod_muc_autojoin: []
 ###################
   mod_announce: 
     access: local

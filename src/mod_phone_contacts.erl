@@ -17,6 +17,8 @@
 -define(NS_PHONE_CONTACTS, <<"jabber:iq:phone_contacts">>). 
 
 -record(phone_contacts,{user= <<"">>, phone = <<"">>, bare_phone = <<"">>, joined = <<"">>}).
+-record(vcard, {us = {<<"">>, <<"">>} :: {binary(), binary()} | binary(),
+                vcard = #xmlel{} :: xmlel()}).
 
 
 start(Host, _Opts) ->
@@ -83,7 +85,8 @@ make_contacts_result(#phone_contacts{user=From, phone=Phone, bare_phone=Bare, jo
         (Joined == <<"true">>)->
             FromJid = jlib:string_to_jid(From),
             Jid = jlib:jid_to_string(#jid{user = Phone, server = FromJid#jid.lserver}),
-            lists:append(Accum,[#xmlel{name = <<"item">>,attrs = [{<<"phone">>,Bare},{<<"registered">>,<<"true">>},{<<"jid">>,Jid}]}]);
+            StatusMessage = get_status(Phone,FromJid#jid.lserver),
+            lists:append(Accum,[#xmlel{name = <<"item">>,attrs = [{<<"phone">>,Bare},{<<"registered">>,<<"true">>},{<<"jid">>,Jid},{<<"status">>,StatusMessage}]}]);
         true ->
             case mod_invites:is_invited(From,Bare) of 
                     true->
@@ -92,3 +95,26 @@ make_contacts_result(#phone_contacts{user=From, phone=Phone, bare_phone=Bare, jo
                         lists:append(Accum,[#xmlel{name = <<"item">>,attrs = [{<<"phone">>,Bare},{<<"invited">>,<<"false">>}]}])
             end
     end.
+
+get_status(LUser,LServer) ->
+        Vcard = get_vcard(LUser,LServer),
+        case Vcard of
+            [H|_] ->
+                StatusMessage = fxml:get_path_s(H, [{elem, <<"SM">>}, cdata]),
+                StatusMessage;
+            [] ->
+                <<>>;
+            false ->
+                <<>>
+        end.
+
+
+get_vcard(LUser, LServer) ->
+    US = {LUser, LServer},
+    F = fun () -> mnesia:read({vcard, US}) end,
+    case mnesia:transaction(F) of
+      {atomic, Rs} ->
+            lists:map(fun (R) -> R#vcard.vcard end, Rs);
+      {aborted, _Reason} -> 
+            error
+end.

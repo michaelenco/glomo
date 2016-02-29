@@ -88,7 +88,7 @@ make_contacts_result(#phone_contacts{user=From, phone=Phone, bare_phone=Bare, jo
             StatusMessage = get_status(Phone,FromJid#jid.lserver),
             lists:append(Accum,[#xmlel{name = <<"item">>,attrs = [{<<"phone">>,Bare},{<<"registered">>,<<"true">>},{<<"jid">>,Jid},{<<"status">>,StatusMessage}]}]);
         true ->
-            case mod_invites:is_invited(From,Bare) of 
+            case mod_invites:is_invited(From,Phone) of 
                     true->
                         lists:append(Accum,[#xmlel{name = <<"item">>,attrs = [{<<"phone">>,Bare},{<<"invited">>,<<"true">>}]}]);
                     false->

@@ -11,6 +11,7 @@ var inviteData=data.invite
 var total_regs = data.length
 
 var date_formatter = d3.time.format("%d.%m.%y")	
+var time_formatter = d3.time.format("%d.%m.%y %H:%M")	
 var countryColors = d3.scale.category20()
 
 function make_date(d) {
@@ -910,4 +911,94 @@ function conversionChart(opt) {
 		svg.select('.brush').call(brush.clear())
 	}
     }
+}
+
+//particular user stats
+
+var user_select
+
+var xhr = new XMLHttpRequest()
+xhr.open('GET', '/admin/api/users', true)
+xhr.send()
+xhr.onreadystatechange = function() {
+    if(xhr.readyState!=4) return
+
+    var data = JSON.parse(xhr.responseText)
+
+    user_select = $("#user-select").select2({
+	placehoder: "choose user",
+	data: data.map(function(d) {
+	    return {id: d, text: d}
+	}),
+	matcher: function(term, item) {
+	    var match = $.extend(true, {}, item);
+	    if(!term.term) 
+		return match
+	    else {
+		return item.text.indexOf(term.term) == 0 ? match : null
+	    }
+	}
+    })    
+    $('#datepickers input').datepicker({
+	dateFormat: "dd.mm.y",
+    })
+    $('#datepickers').hide()
+
+    user_select.on('change', function() {
+	$('#datepickers').hide()
+	
+	if(!user_select.val()) {
+	    $('#info-table').empty()
+	} else {
+	    var user_req = new XMLHttpRequest()
+	    user_req.open('GET','/admin/api/user_info/'+user_select.val(), true)
+	    user_req.send()
+	    user_req.onreadystatechange = function() {
+		if(user_req.readyState != 4 ) return
+
+		var userdata = JSON.parse(user_req.responseText)
+		var date_arr = userdata.sms.concat(userdata.messages)
+		if(date_arr.length) {
+
+		    var period_start = new Date(Math.min.apply(Math,date_arr))
+		    var period_end = new Date(Math.max.apply(Math,date_arr))
+			    
+		    $("#ud1").val(date_formatter(period_start))
+		    $("#ud2").val(date_formatter(period_end))
+		    $('#datepickers').show()
+		    $('#datepickers input').on('change', make_info_table)
+		}
+		function make_info_table() {
+		    $('#info-table').empty()
+			.append('<tr><td>registered</td><td>'+
+				    time_formatter(new Date(userdata.registration_date))+
+			 '</td></tr>')
+			 .append('<tr><td>country</td><td>'+userdata.country+'</td></tr>')
+			 .append('<tr><td>last activity</td><td>'+
+				 time_formatter(new Date(userdata.last_activity))+
+				     '</td></tr>')
+			 .append('<tr><td>glomo contacts count</td><td>'+userdata.contacts_count+'</td></tr>')
+			 .append('<tr><td>invites count</td><td>'+userdata.invites_count+'</td></tr>')
+			 .append('<tr><td>total files sent</td><td>'+userdata.total_files+'</td></tr>')
+			 .append('<tr><td>total images sent</td><td>'+userdata.total_images+'</td></tr>')
+		   if(date_arr.length) { 
+			function timestamp_filter(d) {
+			    return (new Date(d) >= date_formatter.parse($("#ud1").val()) &&
+				    new Date(d) <= date_formatter.parse($("#ud2").val()).getTime()+24*60*60*1000)
+			}
+			var msg_cnt = userdata.messages.filter(timestamp_filter).length
+			var sms_cnt = userdata.sms.filter(timestamp_filter).length
+			$('#info-table')
+			    .append('<tr><td>messages sent over period</td><td>'+msg_cnt+'</td></tr>')
+			    .append('<tr><td>sms sent over period</td><td>'+sms_cnt+'</td></tr>')
+		   } else {
+		        $('#info-table')
+			    .append('<tr><td colspan="2">user didn`t sent any sms or messages</td></tr>')
+		   }
+		}
+		
+		make_info_table()
+	    }
+	}
+    })
 }

@@ -54,6 +54,7 @@ set_invited_phones(From, [#xmlel{attrs = Attrs}|T]) ->
                 set_invited_phones(From, T);
             false->
                 mnesia:dirty_write(#user_invites{user=jlib:jid_to_string(From), phone=FormattedNumber}),
+		ejabberd_hooks:run(invite_sent,[jid:to_string(From),FormattedNumber]),
                 %mod_sms:send_sms(binary_to_list(FormattedNumber),"Holla! Let's use Glomo for chating! http://glomo.im")
                 set_invited_phones(From, T)
     end.

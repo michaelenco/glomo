@@ -11,10 +11,12 @@
 	 user_send_packet/4,
 	 generate_stat_data/0,
 	 session_close/1,
+	 user_sent_invite/2,
 	 remove_stat_data/0]).  
 
 -include("ejabberd.hrl").
 -include("logger.hrl").
+-include("mod_roster.hrl").
 -include("jlib.hrl").
 -include("ejabberd_http.hrl").
 -include("ejabberd_web_admin.hrl").
@@ -22,7 +24,6 @@
 
 -record(user_countries,{user= <<"">>, country = <<"">>}).
 -record(phone_contacts,{user, phone, bare_phone, joined}).
--record(user_invites,{user= <<"">>, phone = <<"">>, timestamp}).
 
 
 -record(stat_register, {user, timestamp}).
@@ -31,6 +32,7 @@
 -record(stat_session, {user, start, length, country}).
 -record(stat_file, {user, size, type, timestamp, country}).
 -record(stat_chat, {user, timestamp, country}).
+-record(stat_invites,{user= <<"">>, phone = <<"">>, timestamp}).
 -record(session, {sid,usr,us,priority,info}).
 
 -record(last_activity, {us, timestamp, status}).  
@@ -47,7 +49,8 @@ start(Host, _Opts) ->
 			[{disc_copies, [node()]},
 			 {attributes, record_info(fields, stat_register)}]),
     mnesia:create_table(stat_file, 
-			[{disc_copies, [node()]},
+			[{type,bag},
+			 {disc_copies, [node()]},
 			 {attributes, record_info(fields, stat_file)}]),
     mnesia:create_table(stat_chat, 
 			[{type,bag},
@@ -57,12 +60,17 @@ start(Host, _Opts) ->
 			[{type,bag},
 			 {disc_copies, [node()]},
 			 {attributes, record_info(fields, stat_session)}]),
+    mnesia:create_table(stat_invites, 
+			[{type,bag},
+			 {disc_copies, [node()]},
+			 {attributes, record_info(fields, stat_invites)}]),
 
     ejabberd_hooks:add(session_close, global, ?MODULE, session_close, 50),
     ejabberd_hooks:add(user_send_packet, Host, ?MODULE, user_send_packet, 50),
     ejabberd_hooks:add(register_user, Host, ?MODULE, register_user, 50),
     ejabberd_hooks:add(http_upload_slot_request, Host, ?MODULE, http_upload_slot_request, 50),
     ejabberd_hooks:add(sms_sent, global, ?MODULE, user_sent_sms, 50),
+    ejabberd_hooks:add(invite_sent, global, ?MODULE, user_sent_invite, 50),
     ejabberd_hooks:add(webadmin_json_api, ?MODULE, webadmin_json_api, 50),
     ok.
 
@@ -72,6 +80,7 @@ stop(Host) ->
     ejabberd_hooks:delete(register_user, Host, ?MODULE, register_user, 50),
     ejabberd_hooks:delete(http_upload_slot_request, Host, ?MODULE, http_upload_slot_request, 50),
     ejabberd_hooks:delete(sms_sent, Host, ?MODULE, user_sent_sms, 50),
+    ejabberd_hooks:delete(invite_sent, Host, ?MODULE, user_sent_invite, 50),
 
     ejabberd_hooks:delete(webadmin_json_api, ?MODULE, webadmin_json_api, 50),
     ok.
@@ -150,9 +159,9 @@ webadmin_json_api(Acc, #request{path = [<<"api">>, <<"stat">>]}) ->
 		       [{<<"timestamp">>, now_to_timestamp(Now)},
 			{<<"country">>, Country},
 			{<<"joined">>, Joined}] ||  
-		       #user_invites{user=User,
+		       #stat_invites{user=User,
 				    phone=P, 
-				  timestamp=Now} <-mnesia:table(user_invites),
+				  timestamp=Now} <-mnesia:table(stat_invites),
 		       #phone_contacts{user=U2,
 				       phone = P2,
 				       joined=Joined} <-mnesia:table(phone_contacts),
@@ -164,8 +173,6 @@ webadmin_json_api(Acc, #request{path = [<<"api">>, <<"stat">>]}) ->
 		      ]),
 	    qlc:e(Q)
     end,
-
-
     {atomic, Users} = mnesia:transaction(UserQuery),
     {atomic, Sms} = mnesia:transaction(SmsQuery),
     {atomic, File} = mnesia:transaction(FileQuery),
@@ -178,7 +185,40 @@ webadmin_json_api(Acc, #request{path = [<<"api">>, <<"stat">>]}) ->
 	    {<<"session">>, Session},
 	    {<<"invite">>, Invite},
 	    {<<"file">>, File}
-	   ]}.
+	   ]};
+webadmin_json_api(Acc, #request{path = [<<"api">>, <<"users">>]}) -> 
+    {atomic, Users} = mnesia:transaction(fun() ->
+		  qlc:e(qlc:q([User || #stat_register{user = User} <- mnesia:table(stat_register)]))
+	  end),
+    {stop, Users};
+webadmin_json_api(Acc, #request{path = [<<"api">>, <<"user_info">>, UserId]}) ->
+    [#stat_register{timestamp=RegTime}] = mnesia:dirty_read(stat_register, UserId),
+    [#user_countries{country=Mcc}] = mnesia:dirty_read(user_countries,UserId),
+    [#mcc_country{country=Country}] = mnesia:dirty_read(mcc_country, Mcc),
+    [#last_activity{timestamp=LastAct}] = mnesia:dirty_match_object(#last_activity{us={UserId,'_'}, _ = '_'}),
+    Friends = mnesia:dirty_match_object(#roster{us={UserId,'_'}, _='_'}),
+    Invites = mnesia:dirty_match_object(#stat_invites{user = UserId, _='_'}),
+    Sms = mnesia:dirty_match_object(#stat_sms{user=UserId, _='_'}),
+    Chat = mnesia:dirty_match_object(#stat_chat{user=UserId, _='_'}),
+    Files = mnesia:dirty_match_object(#stat_file{user=UserId, _='_'}),
+    
+    Images = lists:filtermap(fun(#stat_file{type=Type}) ->
+				     case re:run(Type, "^image*") of
+					 {match,_} -> true;
+					 _ -> false
+				     end
+			     end,
+			     Files),
+
+    {stop, [{<<"registration_date">>, now_to_timestamp(RegTime)},
+	    {<<"country">>, Country},
+	    {<<"sms">>, [now_to_timestamp(Time) || #stat_sms{timestamp=Time} <- Sms]},
+	    {<<"messages">>, [now_to_timestamp(Time) || #stat_chat{timestamp=Time} <- Chat]},
+	    {<<"total_files">>, length(Files)},
+	    {<<"total_images">>, length(Images)},
+	    {<<"last_activity">>, LastAct*1000},
+	    {<<"contacts_count">>, length(Friends)},
+	    {<<"invites_count">>, length(Invites)}]}.
 
 register_user(User, Server) ->
     mnesia:dirty_write(#stat_register{user=User, timestamp=os:timestamp()}),
@@ -190,6 +230,9 @@ register_user(User, Server) ->
 
 user_sent_sms(From, _To) ->
     mnesia:dirty_write(#stat_sms{user=From, timestamp=os:timestamp()}),
+    ok.
+user_sent_invite(From, To) ->
+    mnesia:dirty_write(#stat_invites{user=From, phone = To, timestamp=os:timestamp()}),
     ok.
 
 session_close(SID) -> 
@@ -379,7 +422,7 @@ add_stat_invites(Num) ->
 			  phone=Invitee,
 			  bare_phone=Invitee,
 			  joined=Joined}),
-    mnesia:dirty_write(#user_invites{user = User, phone = Invitee, timestamp = Ts}),
+    mnesia:dirty_write(#stat_invites{user = User, phone = Invitee, timestamp = Ts}),
     add_stat_invites(Num-1).
 
 

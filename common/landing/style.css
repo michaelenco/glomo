@@ -1,0 +1,155 @@
+@font-face {
+    font-family: 'SF';
+    font-weight: 100;
+    src: url(fonts/sfuidisplay/SFUIDisplay-Ultralight.otf);    
+}
+@font-face {
+    font-family: 'SF';
+    font-weight: 400;
+    src: url(fonts/sfuidisplay/SFUIDisplay-Regular.otf);
+}
+@font-face {
+    font-family: 'SFTxt';
+    font-weight: regular;
+    src: url(fonts/sfuitext/SFUIText-Regular.otf);
+}
+
+body {
+    font-family: 'SFTxt'; 
+    font-weight: 300;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.header {
+}
+.header .background {
+    position: absolute;
+    top: 0;
+    display: block;
+    width: 100%;
+    z-index: -1;
+}
+.header .content {
+    margin-top: 10%;
+}
+.header .left {
+    width: 45%;
+    text-align: right;
+    float: left;
+    margin-right: 6%;    
+}
+.header .right {
+}
+.header .logo {
+    display: block;
+    width: 10vw;
+    margin: 0 auto;
+}
+.header .galaxy-edge {
+    width: 50%;
+}
+.tagline {
+    color: white;
+    margin-top: 10vw;
+    font-size: 5vw;
+    font-weight: 100;
+    padding-top: 3vw;
+    line-height: 1;
+    letter-spacing: 0.1em;
+    margin-bottom: 10vw;
+    font-family: 'SF';
+}
+.store-link {
+    display: block;
+}
+.store-link img {
+    width: 10%;
+}
+
+.item {
+    padding-top: 5vw;
+    width: 100%
+}
+.item .image {
+    text-align:right;
+    width: 35%;
+    float: left;
+    margin-right: 5vw;
+}
+.item .image img {
+    width: 50%;
+}
+.content .header {
+    color: #007aff;
+    font-weight: 400; 
+    font-size: 3vw;
+    font-family: 'SF';
+    padding-top: 5vw;
+    padding-bottom: 5vw;
+}
+
+.item .text .desc {
+    color: #555454;
+    width: 75%;
+    line-height: 1.4;
+    font-size: 1vw;
+}
+
+.item:nth-child(even) {
+    background-color: #F4F9FF;
+}
+
+.item.second .image {
+    background-image: url(images/im_3.svg);
+    background-repeat: no-repeat;
+    background-size: 13vw;
+    height: 30vw;
+    width: 32vw;
+    margin-right: 8vw;
+    background-position: right center;
+}
+.item.footer {
+    color: #324462;
+    font-size: 1.5vw;
+    text-align: center;
+    padding-top: 3vw;
+    padding-bottom: 3vw;
+}
+
+@media (max-width: 480px) {
+    .item .image {
+	float: none;
+	margin: 0 auto;
+	width: 100%;
+	text-align: center;
+    }
+    .item {
+	padding-bottom: 5vw;
+    }
+    .item .image img {
+	width: 40%; 
+    }
+    .item.second .image {
+	background-position: center center;
+	margin: 0 auto;
+	width: 40%;
+	background-size: 100%;
+    }
+
+    .item .text {
+	text-align: center;
+	width: 50%;
+	margin: 0 auto;
+    }
+    .item .text .desc {
+	width: 100%
+    }
+
+    .item .header {
+	font-size: 4vw; 
+    }
+    .item .text .desc {
+	font-size: 2vw;
+    }
+}

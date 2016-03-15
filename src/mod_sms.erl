@@ -99,7 +99,7 @@ get_user_quota(User) ->
    			#user_sms_quota{user = User,quota = Quota} = Result, 
 			{ok, Quota};
 		[] ->
-	        		{error, notfound}
+	        		{ok, 0}
 	end.
 
 set_user_quota(User,Count) ->

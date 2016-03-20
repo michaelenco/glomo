@@ -16,7 +16,7 @@
 	 muc_members/3,
 	 user_online/3]).
 
--record(user_room, {key, status}).
+-record(user_room, {key, status, timestamp}).
 
 -define(NS_MUC_CREATE, <<"muc:create">>).
 -define(NS_MUC_INVITE, <<"muc:invite">>).
@@ -43,7 +43,7 @@ stop(Host) ->
 
 user_online(_SID, #jid{user = User, server = Server}=JID, _Info) ->
     Rooms = mnesia:dirty_select(user_room, [{#user_room{key = {User,Server,'$1', '$2'}, 
-					       status = <<"joined">>},
+					       status = <<"joined">>, _='_'},
 				    [],
 				    [{{'$1','$2'}}]}]),
     lists:foreach(fun({RoomId, RoomServer}) ->
@@ -106,7 +106,7 @@ muc_create(#jid{user=User, server=Server}=From, _To, _IQ) ->
     ejabberd_router:route(From,PresenceTo,Presence),
 
     mnesia:dirty_write(#user_room{key = {User,Server,RoomId, RoomServer},
-				status = <<"joined">>}),
+				status = <<"joined">>, timestamp = os:timestamp()}),
 
     #iq{type = result, sub_el = [
 			       #xmlel{
@@ -149,7 +149,8 @@ muc_invite(#jid{user = User, server = Server} = From,
 		      ]},
 	      ejabberd_router:route(From, RoomJid, Message),
 	      mnesia:dirty_write(#user_room{key = {User,Server,RoomId, RoomServer},
-					    status = <<"joined">>})
+					    status = <<"joined">>,
+					    timestamp = os:timestamp()})
 	  end,
 	  Users),
 
@@ -164,12 +165,12 @@ muc_leave(#jid{user = User, server = Server} = From, _To, #iq{sub_el = SubEl}) -
 			  #xmlel{name = <<"presence">>,
 				 attrs = [{<<"to">>, jid:to_string(jid:make(RoomId, RoomServer, User))},
 					  {<<"type">>, <<"unavailable">>}]}),
-    mnesia:dirty_write(#user_room{key = {User,Server,RoomId,RoomServer}, status = <<"leaved">>}),
+    mnesia:dirty_write(#user_room{key = {User,Server,RoomId,RoomServer}, status = <<"leaved">>, timestamp = os:timestamp()}),
     #iq{type = result, sub_el = []}.
 
 muc_list(#jid{user = User, server = Server} = From, _To, _IQ) ->
     Rooms = mnesia:dirty_select(user_room, [{#user_room{key = {User,Server,'$1', '$2'}, 
-					       status = '$3'},
+					       status = '$3', _='_'},
 				    [],
 				    [{{'$1','$2','$3'}}]}]),
     #iq{type = result, 
@@ -182,7 +183,7 @@ muc_members(#jid{user = User, server = Server} = From, _To, #iq{sub_el = SubEl})
     #xmlel{attrs=Attrs} = RoomTag = fxml:get_path_s(SubEl, [{elem, <<"room">>}]),
     #jid{user=RoomId, server=RoomServer} = jid:from_string(fxml:get_attr_s(<<"jid">>, Attrs)),
     Users = mnesia:dirty_select(user_room, [{#user_room{key = {'$1', '$2',RoomId, RoomServer}, 
-					       status = '$3'},
+					       status = '$3', _='_'},
 				    [],
 				    [{{'$1','$2','$3'}}]}]),
     #iq{type = result, 

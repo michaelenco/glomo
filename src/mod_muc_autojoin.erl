@@ -154,7 +154,7 @@ muc_invite(#jid{user = User, server = Server} = From,
 	  end,
 	  Users),
 
-    IQ#iq{type = result}.
+    IQ#iq{type = result, sub_el = []}.
 
 muc_leave(#jid{user = User, server = Server} = From, _To, #iq{sub_el = SubEl}=IQ) ->
     #xmlel{attrs=Attrs} = RoomTag = fxml:get_path_s(SubEl, [{elem, <<"room">>}]),
@@ -166,7 +166,7 @@ muc_leave(#jid{user = User, server = Server} = From, _To, #iq{sub_el = SubEl}=IQ
 				 attrs = [{<<"to">>, jid:to_string(jid:make(RoomId, RoomServer, User))},
 					  {<<"type">>, <<"unavailable">>}]}),
     mnesia:dirty_write(#user_room{key = {User,Server,RoomId,RoomServer}, status = <<"leaved">>, timestamp = os:timestamp()}),
-    IQ#iq{type = result}.
+    IQ#iq{type = result, sub_el = []}.
 
 muc_list(#jid{user = User, server = Server} = From, _To, IQ) ->
     Rooms = mnesia:dirty_select(user_room, [{#user_room{key = {User,Server,'$1', '$2'}, 

@@ -85,7 +85,7 @@ user_receive_packet(#xmlel{name = <<"message">>,
     Packet;
 user_receive_packet(Acc,_,_,_,_) -> Acc.
 
-muc_create(#jid{user=User, server=Server}=From, _To, _IQ) ->
+muc_create(#jid{user=User, server=Server}=From, _To, IQ) ->
     RoomId = p1_sha:sha(term_to_binary([From, 
 					os:timestamp(),
 					randoms:get_string()])),
@@ -108,7 +108,7 @@ muc_create(#jid{user=User, server=Server}=From, _To, _IQ) ->
     mnesia:dirty_write(#user_room{key = {User,Server,RoomId, RoomServer},
 				status = <<"joined">>, timestamp = os:timestamp()}),
 
-    #iq{type = result, sub_el = [
+    IQ#iq{type = result, sub_el = [
 			       #xmlel{
 				  name = <<"new-room">>,
 				  attrs = [{<<"jid">>, jlib:jid_to_string(RoomJid)}]
@@ -154,9 +154,9 @@ muc_invite(#jid{user = User, server = Server} = From,
 	  end,
 	  Users),
 
-    #iq{type = result, sub_el = []}.
+    IQ#iq{type = result}.
 
-muc_leave(#jid{user = User, server = Server} = From, _To, #iq{sub_el = SubEl}) ->
+muc_leave(#jid{user = User, server = Server} = From, _To, #iq{sub_el = SubEl}=IQ) ->
     #xmlel{attrs=Attrs} = RoomTag = fxml:get_path_s(SubEl, [{elem, <<"room">>}]),
     #jid{user=RoomId, server=RoomServer} = jid:from_string(fxml:get_attr_s(<<"jid">>, Attrs)),
     io:format("~n~p~n~p~n~p~n~p~n~p~n",[From,User,Server,RoomId,RoomServer]),
@@ -166,27 +166,27 @@ muc_leave(#jid{user = User, server = Server} = From, _To, #iq{sub_el = SubEl}) -
 				 attrs = [{<<"to">>, jid:to_string(jid:make(RoomId, RoomServer, User))},
 					  {<<"type">>, <<"unavailable">>}]}),
     mnesia:dirty_write(#user_room{key = {User,Server,RoomId,RoomServer}, status = <<"leaved">>, timestamp = os:timestamp()}),
-    #iq{type = result, sub_el = []}.
+    IQ#iq{type = result}.
 
-muc_list(#jid{user = User, server = Server} = From, _To, _IQ) ->
+muc_list(#jid{user = User, server = Server} = From, _To, IQ) ->
     Rooms = mnesia:dirty_select(user_room, [{#user_room{key = {User,Server,'$1', '$2'}, 
 					       status = '$3', _='_'},
 				    [],
 				    [{{'$1','$2','$3'}}]}]),
-    #iq{type = result, 
+    IQ#iq{type = result, 
 	sub_el = [#xmlel{name = <<"room">>, 
 			 attrs = [{<<"jid">>, jid:to_string(jid:make(RoomId, RoomServer, <<"">>))},
 				  {<<"status">>, Status}]}  
 		  || {RoomId, RoomServer,Status} <- Rooms]}.
 
-muc_members(#jid{user = User, server = Server} = From, _To, #iq{sub_el = SubEl}) ->
+muc_members(#jid{user = User, server = Server} = From, _To, #iq{sub_el = SubEl} = IQ) ->
     #xmlel{attrs=Attrs} = RoomTag = fxml:get_path_s(SubEl, [{elem, <<"room">>}]),
     #jid{user=RoomId, server=RoomServer} = jid:from_string(fxml:get_attr_s(<<"jid">>, Attrs)),
     Users = mnesia:dirty_select(user_room, [{#user_room{key = {'$1', '$2',RoomId, RoomServer}, 
 					       status = '$3', _='_'},
 				    [],
 				    [{{'$1','$2','$3'}}]}]),
-    #iq{type = result, 
+    IQ#iq{type = result, 
 	sub_el = [#xmlel{name = <<"user">>, 
 			 attrs = [{<<"jid">>, jid:to_string(jid:make(User, Server, <<"">>))},
 				  {<<"status">>, Status}]}  

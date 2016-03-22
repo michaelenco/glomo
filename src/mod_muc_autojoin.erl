@@ -14,15 +14,26 @@
 	 muc_leave/3,
 	 muc_list/3,
 	 muc_members/3,
+	 muc_subject/3,
 	 user_online/3]).
 
 -record(user_room, {key, status, timestamp}).
+-record(archive_msg,
+	{us = {<<"">>, <<"">>}                :: {binary(), binary()} | '$2',
+	 id = <<>>                            :: binary() | '_',
+	 timestamp = p1_time_compat:timestamp() :: erlang:timestamp() | '_' | '$1',
+	 peer = {<<"">>, <<"">>, <<"">>}      :: ljid() | '_' | '$3' | undefined,
+	 bare_peer = {<<"">>, <<"">>, <<"">>} :: ljid() | '_' | '$3',
+	 packet = #xmlel{}                    :: xmlel() | '_',
+	 nick = <<"">>                        :: binary(),
+	 type = chat                          :: chat | groupchat}).
 
 -define(NS_MUC_CREATE, <<"muc:create">>).
 -define(NS_MUC_INVITE, <<"muc:invite">>).
 -define(NS_MUC_LEAVE, <<"muc:leave">>).
 -define(NS_MUC_MEMBERS, <<"muc:members">>).
 -define(NS_MUC_LIST, <<"muc:list">>).
+-define(NS_MUC_SUBJECT, <<"muc:subject">>).
 
 start(Host, Opts) -> 
     mnesia:create_table(user_room, 
@@ -36,6 +47,7 @@ start(Host, Opts) ->
     gen_iq_handler:add_iq_handler(ejabberd_local, Host, ?NS_MUC_LIST, ?MODULE, muc_list, one_queue),
     gen_iq_handler:add_iq_handler(ejabberd_local, Host, ?NS_MUC_LEAVE, ?MODULE, muc_leave, one_queue),
     gen_iq_handler:add_iq_handler(ejabberd_local, Host, ?NS_MUC_INVITE, ?MODULE, muc_invite, one_queue),
+    gen_iq_handler:add_iq_handler(ejabberd_local, Host, ?NS_MUC_SUBJECT, ?MODULE, muc_subject, one_queue),
     ok.
 
 stop(Host) ->
@@ -191,3 +203,41 @@ muc_members(#jid{user = User, server = Server} = From, _To, #iq{sub_el = SubEl} 
 			 attrs = [{<<"jid">>, jid:to_string(jid:make(User, Server, <<"">>))},
 				  {<<"status">>, Status}]}  
 		  || {User, Server ,Status} <- Users]}.
+
+is_subject_message(#xmlel{name = <<"message">>, children=Children}) ->
+    Subjects = lists:filter(fun(X) ->
+				    case X of
+					#xmlel{name = <<"subject">>} ->
+					    true;
+					_ -> false
+				    end
+			    end,
+			    Children),
+    length(Subjects) > 0;
+is_subject_message(_) -> false.
+
+muc_subject(_From, _To, #iq{sub_el = SubEl} = IQ) ->
+    #xmlel{attrs=Attrs} = RoomTag = fxml:get_path_s(SubEl, [{elem, <<"room">>}]),
+    #jid{user=RoomId, server=RoomServer} = jid:from_string(fxml:get_attr_s(<<"jid">>, Attrs)),
+    Messages = mnesia:dirty_select(archive_msg, [{#archive_msg{
+						     us = {RoomId,RoomServer},
+						     packet = '$1',
+						     _ = '_'},
+						  [],
+						  ['$1']}]),
+    SubjectMessages = lists:filter(fun is_subject_message/1, Messages),
+    
+    if
+	length(SubjectMessages) > 0 ->
+	    Index = length(SubjectMessages),
+	    LastSubject = lists:nth(Index, SubjectMessages),
+	    Subject = fxml:get_path_s(LastSubject, [{elem, <<"subject">>}, cdata]),
+	    IQ#iq{type = result,
+		sub_el = [{xmlcdata, Subject}]};		  
+	true ->
+	    IQ#iq{type = result, sub_el = []}
+    end.
+
+
+
+

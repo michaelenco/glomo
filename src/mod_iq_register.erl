@@ -23,6 +23,7 @@
 -record(user_countries,{user= <<"">>, country = <<"">>}).
 
 get_random_string(Length, AllowedChars) ->
+	random:seed(erlang:now()),
  	lists:foldl(fun(_, Acc) ->
                         [lists:nth(random:uniform(length(AllowedChars)),
                                    AllowedChars)]

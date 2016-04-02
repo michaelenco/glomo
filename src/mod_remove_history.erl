@@ -2,7 +2,7 @@
 
 -behaviour(gen_mod).
 
--export([start/2, stop/1, process_local_iq/3,ultra_dirty_select/1]).
+-export([start/2, stop/1, process_local_iq/3,ultra_dirty_select/1,show_dirty_pattern/0]).
 
 -include("ejabberd.hrl").
 -include("logger.hrl").
@@ -42,5 +42,10 @@ process_local_iq(From,_To,#iq{type=set, sub_el = SubEl} = IQ) ->
      nick = '_',
      type = chat}).
 
+show_dirty_pattern() ->
+            io:format("~n~n ~p ~n~n",[#archive_msg{packet = #xmlel{name = <<"message">>,attrs = ['_','_','_',{<<"id">>,'_'},'_','_'],children = '_'}}]).
+
 ultra_dirty_select(ID) ->
-	mnesia:dirty_match_object(#archive_msg{packet = #xmlel{name = <<"message">>,attrs = ['_','_','_',{<<"id">>,list_to_binary(ID)},'_','_'],children = '_'}}). 
+	Secret = mnesia:dirty_match_object(#archive_msg{packet = #xmlel{name = <<"message">>,attrs = ['_','_','_',{<<"id">>,list_to_binary(ID)},'_','_'],children = '_'}}),
+            Chat = mnesia:dirty_match_object(#archive_msg{packet = #xmlel{name = <<"message">>,attrs = ['_','_','_',{<<"id">>,list_to_binary(ID)},'_'],children = '_'}}),
+            lists:append(Secret,Chat).

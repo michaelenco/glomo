@@ -621,7 +621,7 @@ modules:
   mod_sms: []
   helpers: []
   mod_gcm:
-      api_key: "AIzaSyA7bWapsoi8n-Xjdpw6oV5bx5nyfadSzKE"
+      api_key: "AIzaSyArV6HY3Rh3Gw83kbK_dZ-xJoX7zbTTDcU"
   mod_push: []
   mod_stat: []
   mod_muc_autojoin: []

@@ -37,7 +37,8 @@ push(To,Message) ->
     io:format("Sending push notification to ~s, message: ~s~n~n",[jlib:jid_to_string(jlib:jid_remove_resource(To)), Message]),
     case mnesia:dirty_read(gcm_users, jlib:jid_to_string(jlib:jid_remove_resource(To))) of
 	[#gcm_users{gcm_key=Key}] ->
-	    gcm:push(main, [Key], [{<<"data">>, [{<<"message">>, Message}]}]);
+	    Res = gcm:push(main, [Key], [{<<"data">>, [{<<"message">>, Message}]}]),
+	    io:format("~n~n~p~n~n",[Res]);
 	_->
 	    error
     end.

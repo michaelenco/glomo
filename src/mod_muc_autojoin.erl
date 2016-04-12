@@ -188,7 +188,7 @@ muc_list(#jid{user = User, server = Server} = From, _To, IQ) ->
     IQ#iq{type = result, 
 	sub_el = [#xmlel{name = <<"room">>, 
 			 attrs = [{<<"jid">>, jid:to_string(jid:make(RoomId, RoomServer, <<"">>))},
-				  {<<"status">>, Status}]}  
+				  {<<"status">>, Status}], children = xmlMucMembers(RoomId,RoomServer)}  
 		  || {RoomId, RoomServer,Status} <- Rooms]}.
 
 muc_members(#jid{user = User, server = Server} = From, _To, #iq{sub_el = SubEl} = IQ) ->
@@ -203,6 +203,16 @@ muc_members(#jid{user = User, server = Server} = From, _To, #iq{sub_el = SubEl} 
 			 attrs = [{<<"jid">>, jid:to_string(jid:make(User, Server, <<"">>))},
 				  {<<"status">>, Status}]}  
 		  || {User, Server ,Status} <- Users]}.
+
+xmlMucMembers(RoomId,RoomServer)->
+    Users = mnesia:dirty_select(user_room, [{#user_room{key = {'$1', '$2',RoomId, RoomServer}, 
+                           status = '$3', _='_'},
+                    [],
+                    [{{'$1','$2','$3'}}]}]),
+    [#xmlel{name = <<"user">>, 
+             attrs = [{<<"jid">>, jid:to_string(jid:make(User, Server, <<"">>))},
+                  {<<"status">>, Status}]}  
+          || {User, Server ,Status} <- Users].
 
 is_subject_message(#xmlel{name = <<"message">>, children=Children}) ->
     Subjects = lists:filter(fun(X) ->

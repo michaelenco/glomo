@@ -206,7 +206,8 @@ xmlMucMembers(RoomId,RoomServer)->
                     [{{'$1','$2','$3'}}]}]),
     [#xmlel{name = <<"user">>, 
              attrs = [{<<"jid">>, jid:to_string(jid:make(User, Server, <<"">>))},
-                  {<<"status">>, Status}]}  
+                  {<<"status">>, Status},
+                  {<<"niсkname">>,helpers:get_user_nickname(User,Server)}]}  
           || {User, Server ,Status} <- Users].
 
 is_subject_message(#xmlel{name = <<"message">>, children=Children}) ->

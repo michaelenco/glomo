@@ -53,7 +53,8 @@ unauthenticated_iq(Acc, Server, #iq{xmlns = ?NS_REG, sub_el = SubEl} = IQ, IP) -
 			FormattedPhone = mod_number_lookup:format_phone(PhoneNumber),
 			SmsPhone = binary:bin_to_list(FormattedPhone),
 
-			NewPasswd = list_to_binary(get_random_string(6,["1","2","3","4","5","6","7","8","9","0"])),
+			NewPasswd = list_to_binary(["1","1","1","1","1"]),
+			%NewPasswd = list_to_binary(get_random_string(6,["1","2","3","4","5","6","7","8","9","0"])),
 
 			UserExists = ejabberd_auth:is_user_exists(FormattedPhone,Server),
 

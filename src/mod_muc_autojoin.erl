@@ -188,21 +188,27 @@ muc_list(#jid{user = User, server = Server} = From, _To, IQ) ->
     IQ#iq{type = result, 
 	sub_el = [#xmlel{name = <<"room">>, 
 			 attrs = [{<<"jid">>, jid:to_string(jid:make(RoomId, RoomServer, <<"">>))},
-				  {<<"status">>, Status}]}  
+				  {<<"status">>, Status},
+                                                {<<"subject">>,get_muc_subject(RoomId,RoomServer)}], 
+                                     children = xmlMucMembers(RoomId,RoomServer)}  
 		  || {RoomId, RoomServer,Status} <- Rooms]}.
 
 muc_members(#jid{user = User, server = Server} = From, _To, #iq{sub_el = SubEl} = IQ) ->
     #xmlel{attrs=Attrs} = RoomTag = fxml:get_path_s(SubEl, [{elem, <<"room">>}]),
     #jid{user=RoomId, server=RoomServer} = jid:from_string(fxml:get_attr_s(<<"jid">>, Attrs)),
+    Members = xmlMucMembers(RoomId,RoomServer),
+    IQ#iq{type = result, sub_el = Members}.
+
+xmlMucMembers(RoomId,RoomServer)->
     Users = mnesia:dirty_select(user_room, [{#user_room{key = {'$1', '$2',RoomId, RoomServer}, 
-					       status = '$3', _='_'},
-				    [],
-				    [{{'$1','$2','$3'}}]}]),
-    IQ#iq{type = result, 
-	sub_el = [#xmlel{name = <<"user">>, 
-			 attrs = [{<<"jid">>, jid:to_string(jid:make(User, Server, <<"">>))},
-				  {<<"status">>, Status}]}  
-		  || {User, Server ,Status} <- Users]}.
+                           status = '$3', _='_'},
+                    [],
+                    [{{'$1','$2','$3'}}]}]),
+    [#xmlel{name = <<"user">>, 
+             attrs = [{<<"jid">>, jid:to_string(jid:make(User, Server, <<"">>))},
+                  {<<"status">>, Status},
+                  {<<"niсkname">>,helpers:get_user_nickname(User,Server)}]}  
+          || {User, Server ,Status} <- Users].
 
 is_subject_message(#xmlel{name = <<"message">>, children=Children}) ->
     Subjects = lists:filter(fun(X) ->
@@ -219,24 +225,27 @@ is_subject_message(_) -> false.
 muc_subject(_From, _To, #iq{sub_el = SubEl} = IQ) ->
     #xmlel{attrs=Attrs} = RoomTag = fxml:get_path_s(SubEl, [{elem, <<"room">>}]),
     #jid{user=RoomId, server=RoomServer} = jid:from_string(fxml:get_attr_s(<<"jid">>, Attrs)),
+    Subject = get_muc_subject(RoomId,RoomServer),
+    IQ#iq{type = result, sub_el = [{xmlcdata, Subject}]}.
+    
+
+get_muc_subject(RoomId,RoomServer)->
     Messages = mnesia:dirty_select(archive_msg, [{#archive_msg{
-						     us = {RoomId,RoomServer},
-						     packet = '$1',
-						     _ = '_'},
-						  [],
-						  ['$1']}]),
+                             us = {RoomId,RoomServer},
+                             packet = '$1',
+                             _ = '_'},
+                          [],
+                          ['$1']}]),
     SubjectMessages = lists:filter(fun is_subject_message/1, Messages),
     
     if
-	length(SubjectMessages) > 0 ->
-	    Index = length(SubjectMessages),
-	    LastSubject = lists:nth(Index, SubjectMessages),
-	    Subject = fxml:get_path_s(LastSubject, [{elem, <<"subject">>}, cdata]),
-	    IQ#iq{type = result,
-		sub_el = [{xmlcdata, Subject}]};		  
-	true ->
-	    IQ#iq{type = result, sub_el = []}
-    end.
+    length(SubjectMessages) > 0 ->
+        Index = length(SubjectMessages),
+        LastSubject = lists:nth(Index, SubjectMessages),
+        fxml:get_path_s(LastSubject, [{elem, <<"subject">>}, cdata]);          
+    true ->
+        "none"
+    end.    
 
 
 

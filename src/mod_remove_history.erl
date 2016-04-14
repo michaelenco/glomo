@@ -66,5 +66,4 @@ ultra_dirty_select(ID) ->
 ultra_dirty_select_with(From,With) ->
            #jid{user = FromU, server = FromS} = From,
            #jid{user = WithU, server = WithS} = With,
-           io:format("~n~n ~p ~n~n",[#archive_msg{us = {FromU,FromS},bare_peer = {WithU,WithS,'_'}}]),
            mnesia:dirty_match_object(#archive_msg{us = {FromU,FromS},bare_peer = {WithU,WithS,'_'}}).

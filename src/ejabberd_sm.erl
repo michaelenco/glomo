@@ -64,7 +64,8 @@
 	 get_max_user_sessions/2,
 	 get_all_pids/0,
 	 is_existing_resource/3,
-	 get_commands_spec/0
+	 get_commands_spec/0,
+	 make_sid/0
 	]).
 
 -export([init/1, handle_call/3, handle_cast/2,
@@ -784,3 +785,6 @@ opt_type(sm_db_type) ->
 	(redis) -> redis
     end;
 opt_type(_) -> [sm_db_type].
+
+make_sid() ->
+    {p1_time_compat:unique_timestamp(), self()}.

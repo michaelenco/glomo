@@ -86,7 +86,8 @@
 
 %% Utility functions.
 -export([get_proc_name/2,
-	 expand_home/1]).
+	 expand_home/1,
+	 expand_host/2]).
 
 -include("ejabberd.hrl").
 -include("ejabberd_http.hrl").
